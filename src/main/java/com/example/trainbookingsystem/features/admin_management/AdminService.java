@@ -23,6 +23,7 @@ public class AdminService {
                 .map(this::convertToResponseDTO);
     }
 
+
     public AdminDTOS.AdminResponseDTO createAdmin(AdminDTOS.CreateAdminDTO createDTO) {
         if (adminRepo.existsByEmail(createDTO.getEmail())) {
             throw new RuntimeException("Email already exists");
@@ -33,7 +34,8 @@ public class AdminService {
                 createDTO.getEmail(),
                 createDTO.getPassword(),
                 createDTO.getDescription(),
-                createDTO.getContactNumber()
+                createDTO.getContactNumber(),
+                createDTO.getRole() != null ? createDTO.getRole() : "STAFF"
         );
 
         AdminModel savedAdmin = adminRepo.save(admin);
@@ -51,6 +53,9 @@ public class AdminService {
                     }
                     if (updateDTO.getContactNumber() != null) {
                         admin.setContactNumber(updateDTO.getContactNumber());
+                    }
+                    if (updateDTO.getRole() != null) {
+                        admin.setRole(updateDTO.getRole());
                     }
                     return convertToResponseDTO(adminRepo.save(admin));
                 });
@@ -77,6 +82,7 @@ public class AdminService {
         responseDTO.setEmail(admin.getEmail());
         responseDTO.setDescription(admin.getDescription());
         responseDTO.setContactNumber(admin.getContactNumber());
+        responseDTO.setRole(admin.getRole());
         responseDTO.setCreatedAt(admin.getCreatedAt());
         responseDTO.setUpdatedAt(admin.getUpdatedAt());
         return responseDTO;
