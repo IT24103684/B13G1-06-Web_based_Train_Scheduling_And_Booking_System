@@ -15,7 +15,7 @@ public class AdminViews {
     }
     @GetMapping("/admin-dashboard")
     public  String adminDashboard(){
-        return "admin_management/dashbaord";
+        return "admin_management/dashboard";
     }
     @GetMapping("/create-admin")
     public  String createAdmin(){

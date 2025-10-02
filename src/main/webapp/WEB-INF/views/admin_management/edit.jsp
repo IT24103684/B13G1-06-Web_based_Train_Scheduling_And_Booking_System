@@ -135,6 +135,24 @@
             </div>
 
             <div class="space-y-2">
+                <label for="role" class="text-sm font-medium text-foreground">Role</label>
+                <select
+                        id="role"
+                        name="role"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+               ring-offset-background focus-visible:outline-none focus-visible:ring-2
+               focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
+                        required
+                >
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="MODERATOR">Moderator</option>
+                </select>
+                <div class="error-message text-sm text-destructive hidden"></div>
+            </div>
+
+
+            <div class="space-y-2">
                 <label for="description" class="text-sm font-medium text-foreground">Description</label>
                 <textarea
                         id="description"

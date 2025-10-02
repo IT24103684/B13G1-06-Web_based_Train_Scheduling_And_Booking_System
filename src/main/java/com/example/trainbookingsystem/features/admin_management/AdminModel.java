@@ -31,14 +31,18 @@ public class AdminModel {
     @Column(name = "contact_number")
     private String contactNumber;
 
+    @Column(name = "role", nullable = false)
+    private String role;
+
     public AdminModel() {}
 
-    public AdminModel(String name, String email, String password, String description, String contactNumber) {
+    public AdminModel(String name, String email, String password, String description, String contactNumber, String role) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.description = description;
         this.contactNumber = contactNumber;
+        this.role = role;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -116,5 +120,13 @@ public class AdminModel {
 
     public void setContactNumber(String contactNumber) {
         this.contactNumber = contactNumber;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

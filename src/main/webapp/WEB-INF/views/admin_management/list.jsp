@@ -154,7 +154,7 @@
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Email</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Contact</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Created</th>
-                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Actions</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Role</th>
                         </tr>
                         </thead>
                         <tbody id="adminTableBody">
