@@ -10,6 +10,7 @@ public class AdminDTOS {
         private String password;
         private String description;
         private String contactNumber;
+        private String role;
 
         public CreateAdminDTO() {}
 
@@ -52,12 +53,16 @@ public class AdminDTOS {
         public void setContactNumber(String contactNumber) {
             this.contactNumber = contactNumber;
         }
+
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
     }
 
     public static class UpdateAdminDTO {
         private String name;
         private String description;
         private String contactNumber;
+        private String role;
 
         public UpdateAdminDTO() {}
 
@@ -84,6 +89,13 @@ public class AdminDTOS {
         public void setContactNumber(String contactNumber) {
             this.contactNumber = contactNumber;
         }
+
+        public String getRole() {
+            return role;
+        }
+        public void setRole(String role) {
+            this.role = role;
+        }
     }
 
     public static class AdminResponseDTO {
@@ -92,6 +104,7 @@ public class AdminDTOS {
         private String email;
         private String description;
         private String contactNumber;
+        private String role;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
@@ -152,6 +165,14 @@ public class AdminDTOS {
         public void setUpdatedAt(LocalDateTime updatedAt) {
             this.updatedAt = updatedAt;
         }
+
+        public String getRole() {
+            return role;
+        }
+        public void setRole(String role) {
+            this.role = role;
+        }
+
     }
 
     public static class AdminLoginDTO {
