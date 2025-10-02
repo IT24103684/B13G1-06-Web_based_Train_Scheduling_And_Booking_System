@@ -91,7 +91,7 @@ class AdminEdit {
         document.getElementById('email').value = admin.email || '';
         document.getElementById('contactNumber').value = admin.contactNumber || '';
         document.getElementById('description').value = admin.description || '';
-
+        document.getElementById('role').value = admin.role;
         this.elements.createdAt.textContent = this.formatDate(admin.createdAt);
         this.elements.updatedAt.textContent = this.formatDate(admin.updatedAt);
     }
@@ -208,7 +208,8 @@ class AdminEdit {
         const adminData = {
             name: formData.get('name').trim(),
             contactNumber: formData.get('contactNumber').trim(),
-            description: formData.get('description').trim() || null
+            description: formData.get('description').trim() || null,
+            role: formData.get('role')
         };
 
         try {
@@ -225,6 +226,16 @@ class AdminEdit {
                 this.originalData = result;
                 this.elements.updatedAt.textContent = this.formatDate(result.updatedAt);
                 this.showSuccess('Admin updated successfully!');
+
+                setTimeout(() => {
+                    history.back();
+
+                    window.addEventListener("pageshow", function (event) {
+                        if (event.persisted) {
+                            window.location.reload();
+                        }
+                    });
+                }, 1200);
             } else {
                 const error = await response.text();
                 this.showError(error || 'Failed to update admin');
