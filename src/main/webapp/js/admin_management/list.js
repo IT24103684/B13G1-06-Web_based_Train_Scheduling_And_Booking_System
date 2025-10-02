@@ -115,6 +115,10 @@ class AdminList {
                 <td class="p-4 align-middle">
                     <span class="text-sm text-muted-foreground">${this.formatDate(admin.createdAt)}</span>
                 </td>
+                <td class="p-4 align-middle">
+                     <span class="text-sm text-foreground">${this.escapeHtml(admin.role)}</span>
+                </td>
+
                 <td class="p-4 align-middle text-right">
                     <div class="flex items-center justify-end space-x-2">
                         <button 
