@@ -5,6 +5,7 @@ class PassengerProfile {
         this.logoutModal = document.getElementById('logoutModal');
         this.deleteModal = document.getElementById('deleteModal');
         this.updateForm = document.getElementById('updateProfileForm');
+        this.deleteOption = 'keep';
 
         this.validators = {
             firstName: /^[a-zA-Z\s]{2,50}$/,
@@ -35,7 +36,11 @@ class PassengerProfile {
 
         document.getElementById('cancelDeleteBtn').addEventListener('click', () => this.closeDeleteModal());
         document.getElementById('confirmDeleteBtn').addEventListener('click', () => this.handleDelete());
-
+        document.querySelectorAll('input[name="deleteOption"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.deleteOption = e.target.value;
+            });
+        });
         this.updateForm.addEventListener('submit', (e) => this.handleUpdate(e));
 
         Object.keys(this.validators).forEach(field => {
@@ -303,15 +308,18 @@ class PassengerProfile {
     }
 
     async handleDelete() {
+        const keepData = this.deleteOption === 'keep';
+
         try {
-            const response = await fetch(`/api/passengers/${this.currentPassenger.id}`, {
+            const response = await fetch(`/api/passengers/${this.currentPassenger.id}?keepData=${keepData}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
+                const message = await response.text();
                 sessionStorage.removeItem('passengerSession');
                 localStorage.removeItem('rememberedPassengerEmail');
-                this.showSuccess('Account deleted successfully! Redirecting...');
+                this.showSuccess(`${message} Redirecting...`);
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 1500);
