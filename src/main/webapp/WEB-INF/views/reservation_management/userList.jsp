@@ -64,7 +64,7 @@
 <jsp:include page="../common/navbar.jsp"/>
 
 <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <!-- Loading State -->
+
     <div id="loadingState" class="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-8">
         <div class="animate-pulse space-y-6">
             <div class="h-8 bg-gray-300 rounded w-1/3"></div>
