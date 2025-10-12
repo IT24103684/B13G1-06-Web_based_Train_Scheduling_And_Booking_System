@@ -1,7 +1,9 @@
 package com.example.trainbookingsystem.features.reservation_management;
 
+import com.example.trainbookingsystem.features.booking_management.BookingModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +23,6 @@ public interface ReservationRepo extends JpaRepository<ReservationModel, Long> {
     List<ReservationModel> findByDeleteStatusOrderByCreatedAtDesc(Boolean deleteStatus);
 
     boolean existsByBookingIdAndDeleteStatus(Long bookingId, Boolean deleteStatus);
+
+    void deleteByBooking(BookingModel booking);
 }
