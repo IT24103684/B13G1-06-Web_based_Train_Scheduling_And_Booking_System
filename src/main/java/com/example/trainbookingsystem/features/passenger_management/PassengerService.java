@@ -1,7 +1,13 @@
 package com.example.trainbookingsystem.features.passenger_management;
 
+import com.example.trainbookingsystem.features.booking_management.BookingModel;
+import com.example.trainbookingsystem.features.booking_management.BookingRepo;
+import com.example.trainbookingsystem.features.feedback_management.FeedbackRepo;
+import com.example.trainbookingsystem.features.reservation_management.ReservationRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -11,6 +17,15 @@ public class PassengerService {
 
     @Autowired
     private PassengerRepo passengerRepo;
+
+    @Autowired
+    private BookingRepo bookingRepo;
+
+    @Autowired
+    private ReservationRepo reservationRepo;
+
+    @Autowired
+    private FeedbackRepo feedbackRepo;
 
     public List<PassengerDTOS.PassengerResponseDTO> getAllPassengers() {
         return passengerRepo.findByDeleteStatus(false).stream()
@@ -64,15 +79,35 @@ public class PassengerService {
                 });
     }
 
-    public boolean deletePassenger(Long id) {
-        Optional<PassengerModel> passenger = passengerRepo.findByIdAndDeleteStatus(id, false);
-        if (passenger.isPresent()) {
-            PassengerModel passengerModel = passenger.get();
-            passengerModel.setDeleteStatus(true);
-            passengerRepo.save(passengerModel);
-            return true;
+    @Transactional
+    public boolean deletePassenger(Long id, boolean keepData) {
+        try {
+            Optional<PassengerModel> passengerOpt = passengerRepo.findByIdAndDeleteStatus(id, false);
+            if (passengerOpt.isPresent()) {
+                PassengerModel passenger = passengerOpt.get();
+
+                if (keepData) {
+                    passenger.setDeleteStatus(true);
+                    passengerRepo.save(passenger);
+                } else {
+
+                    List<BookingModel> bookings = bookingRepo.findByPassenger(passenger);
+                    for (BookingModel booking : bookings) {
+                        reservationRepo.deleteByBooking(booking);
+                    }
+
+                    bookingRepo.deleteAll(bookings);
+
+                    feedbackRepo.deleteByCreatedBy(passenger);
+
+                    passengerRepo.delete(passenger);
+                }
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting passenger: " + e.getMessage(), e);
         }
-        return false;
     }
 
     public Optional<PassengerDTOS.PassengerResponseDTO> login(PassengerDTOS.PassengerLoginDTO loginDTO) {
