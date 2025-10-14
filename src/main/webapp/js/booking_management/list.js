@@ -6,38 +6,7 @@ class AdminReservationList {
         this.deleteReservationId = null;
 
         this.elements = {
-            searchInput: document.getElementById('searchInput'),
-            statusFilter: document.getElementById('statusFilter'),
-            dateFilter: document.getElementById('dateFilter'),
-            clearFilters: document.getElementById('clearFilters'),
-            reservationTable: document.getElementById('reservationTable'),
-            reservationTableBody: document.getElementById('reservationTableBody'),
-            loadingState: document.getElementById('loadingState'),
-            errorState: document.getElementById('errorState'),
-            emptyState: document.getElementById('emptyState'),
-            viewModal: document.getElementById('viewModal'),
-            editModal: document.getElementById('editModal'),
-            deleteModal: document.getElementById('deleteModal'),
-            cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
-            confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
-            exportPdfBtn: document.getElementById('exportPdfBtn'),
-            editForm: document.getElementById('editForm')
-        };
-
-        this.init();
-    }
-
-    init() {
-        this.bindEvents();
-        this.loadReservations();
-    }
-
-    bindEvents() {
-        this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
-        this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
-        this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
-        this.elements.clearFilters.addEventListener('click', () => this.clearFilters());
-        this.elements.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteModal());
+        'click', () => this.hideDeleteModal());
         this.elements.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
         this.elements.exportPdfBtn.addEventListener('click', () => this.exportToPDF());
 
