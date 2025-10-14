@@ -1,6 +1,14 @@
 package com.example.trainbookingsystem.features.booking_management;
 
-
+import com.example.trainbookingsystem.features.passenger_management.PassengerModel;
+import com.example.trainbookingsystem.features.passenger_management.PassengerRepo;
+import com.example.trainbookingsystem.features.schedule_management.ScheduleModel;
+import com.example.trainbookingsystem.features.schedule_management.ScheduleRepo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
