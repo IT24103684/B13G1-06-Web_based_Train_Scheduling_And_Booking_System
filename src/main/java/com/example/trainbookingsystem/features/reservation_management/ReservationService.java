@@ -61,7 +61,6 @@ public class ReservationService {
                 createDTO.getNumOfChildrenSeats(),
                 createDTO.getTrainBoxClass(),
                 createDTO.getTotalBill(),
-                createDTO.getPaidMethod(),
                 createDTO.getStatus()
         );
 
@@ -83,9 +82,6 @@ public class ReservationService {
                     }
                     if (updateDTO.getTotalBill() != null) {
                         reservation.setTotalBill(updateDTO.getTotalBill());
-                    }
-                    if (updateDTO.getPaidMethod() != null) {
-                        reservation.setPaidMethod(updateDTO.getPaidMethod());
                     }
                     if (updateDTO.getStatus() != null) {
                         reservation.setStatus(updateDTO.getStatus());
@@ -113,7 +109,6 @@ public class ReservationService {
         responseDTO.setNumOfChildrenSeats(reservation.getNumOfChildrenSeats());
         responseDTO.setTrainBoxClass(reservation.getTrainBoxClass());
         responseDTO.setTotalBill(reservation.getTotalBill());
-        responseDTO.setPaidMethod(reservation.getPaidMethod());
         responseDTO.setStatus(reservation.getStatus());
         responseDTO.setCreatedAt(reservation.getCreatedAt());
         responseDTO.setUpdatedAt(reservation.getUpdatedAt());
