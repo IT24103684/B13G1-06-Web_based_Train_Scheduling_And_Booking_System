@@ -66,8 +66,6 @@ class CreateReservation {
             this.calculateTotal();
         });
 
-        const paidMethod = document.getElementById('paidMethod');
-        paidMethod.addEventListener('change', () => this.clearError('paidMethod'));
     }
 
     async loadBookingData() {
@@ -231,7 +229,11 @@ class CreateReservation {
         const childPrice = adultPrice * childDiscount;
 
         const total = (adultSeats * adultPrice) + (childSeats * childPrice);
-        document.getElementById('totalBill').textContent = `Rs. ${total.toLocaleString()}`;
+
+        // Store the numeric value in a data attribute for easy retrieval
+        const totalBillElement = document.getElementById('totalBill');
+        totalBillElement.textContent = `Rs. ${total.toLocaleString()}`;
+        totalBillElement.dataset.numericValue = total; // Store the actual number
     }
 
     validateField(fieldName) {
@@ -253,12 +255,6 @@ class CreateReservation {
             }
         }
 
-        if (fieldName === 'paidMethod') {
-            if (!value) {
-                this.showError(errorDiv, 'Please select payment method');
-                isValid = false;
-            }
-        }
 
         if (isValid && errorDiv) {
             this.hideError(errorDiv);
@@ -276,7 +272,6 @@ class CreateReservation {
         }
 
         if (!this.validateField('trainBoxClass')) isValid = false;
-        if (!this.validateField('paidMethod')) isValid = false;
 
         return isValid;
     }
@@ -360,15 +355,21 @@ class CreateReservation {
         this.setLoading(true);
 
         const formData = new FormData(this.form);
+
+        // Get the numeric value from the data attribute
+        const totalBillElement = document.getElementById('totalBill');
+        const totalBillValue = parseFloat(totalBillElement.dataset.numericValue) || 0;
+
         const reservationData = {
             bookingId: parseInt(this.bookingId),
             numOfAdultSeats: parseInt(formData.get('numOfAdultSeats')),
             numOfChildrenSeats: parseInt(formData.get('numOfChildrenSeats')) || 0,
             trainBoxClass: formData.get('trainBoxClass'),
-            totalBill: parseFloat(document.getElementById('totalBill').textContent.replace(/[^\d.-]/g, '')),
-            paidMethod: formData.get('paidMethod'),
+            totalBill: totalBillValue, // Use the stored numeric value
             status: 'PENDING' // Default status
         };
+
+        console.log('Sending reservation data:', reservationData); // For debugging
 
         try {
             const response = await fetch('/api/reservations', {
@@ -381,9 +382,11 @@ class CreateReservation {
 
             if (response.ok) {
                 const result = await response.json();
-                this.showSuccess('Reservation confirmed successfully! Redirecting to your reservations...');
+                this.showSuccess('Reservation confirmed successfully! Redirecting to payment...');
+
+                // Redirect to payment page with reservation ID
                 setTimeout(() => {
-                    window.location.href = '/my-reservations';
+                    window.location.href = `/create-payment?reservationId=${result.id}`;
                 }, 2000);
             } else {
                 const error = await response.text();
