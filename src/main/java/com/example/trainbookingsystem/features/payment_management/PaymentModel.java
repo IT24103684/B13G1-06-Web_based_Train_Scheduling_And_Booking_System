@@ -1,6 +1,7 @@
 package com.example.trainbookingsystem.features.payment_management;
 
 import com.example.trainbookingsystem.features.booking_management.BookingModel;
+import com.example.trainbookingsystem.features.reservation_management.ReservationModel;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +22,14 @@ public class PaymentModel {
             foreignKey = @ForeignKey(name = "fk_payment_booking")
     )
     private BookingModel booking;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "reservation_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "fk_payment_reservation")
+    )
+    private ReservationModel reservation;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
@@ -48,9 +57,10 @@ public class PaymentModel {
 
     public PaymentModel() {}
 
-    public PaymentModel(BookingModel booking, BigDecimal amount, String paymentMethod,
+    public PaymentModel(BookingModel booking,ReservationModel reservation, BigDecimal amount, String paymentMethod,
                         String paymentStatus, String transactionId) {
         this.booking = booking;
+        this.reservation = reservation;
         this.amount = amount;
         this.paymentMethod = paymentMethod;
         this.paymentStatus = paymentStatus;
@@ -167,5 +177,13 @@ public class PaymentModel {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public ReservationModel getReservation() {
+        return reservation;
+    }
+
+    public void setReservation(ReservationModel reservation) {
+        this.reservation = reservation;
     }
 }

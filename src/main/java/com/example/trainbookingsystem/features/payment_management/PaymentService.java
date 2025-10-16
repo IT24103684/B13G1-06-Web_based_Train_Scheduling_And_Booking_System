@@ -2,6 +2,8 @@ package com.example.trainbookingsystem.features.payment_management;
 
 import com.example.trainbookingsystem.features.booking_management.BookingModel;
 import com.example.trainbookingsystem.features.booking_management.BookingRepo;
+import com.example.trainbookingsystem.features.reservation_management.ReservationModel;
+import com.example.trainbookingsystem.features.reservation_management.ReservationRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,9 @@ public class PaymentService {
 
     @Autowired
     private PaymentRepo paymentRepo;
+
+    @Autowired
+    private ReservationRepo reservationRepo;
 
     @Autowired
     private BookingRepo bookingRepo;
@@ -58,6 +63,12 @@ public class PaymentService {
             throw new RuntimeException("Booking not found");
         }
 
+        // ADD THIS: Fetch the reservation associated with this booking
+        Optional<ReservationModel> reservation = reservationRepo.findByBookingIdAndDeleteStatus(createDTO.getBookingId(), false);
+        if (!reservation.isPresent()) {
+            throw new RuntimeException("Reservation not found for this booking");
+        }
+
         if (paymentRepo.existsByBookingIdAndDeleteStatus(createDTO.getBookingId(), false)) {
             throw new RuntimeException("Payment already exists for this booking");
         }
@@ -66,8 +77,10 @@ public class PaymentService {
             throw new RuntimeException("Transaction ID already exists");
         }
 
+        // NOW PASS BOTH booking AND reservation
         PaymentModel payment = new PaymentModel(
                 booking.get(),
+                reservation.get(),  // ADD THIS
                 createDTO.getAmount(),
                 createDTO.getPaymentMethod(),
                 createDTO.getPaymentStatus(),
@@ -154,6 +167,11 @@ public class PaymentService {
         PaymentDTOS.BookingInfo bookingInfo = new PaymentDTOS.BookingInfo();
         bookingInfo.setId(payment.getBooking().getId());
         bookingInfo.setAdditionalNotes(payment.getBooking().getAdditionalNotes());
+
+        // ADD THESE LINES - Seat and class information
+        bookingInfo.setNumberOfAdults(payment.getReservation().getNumOfAdultSeats());
+        bookingInfo.setNumberOfChildren(payment.getReservation().getNumOfChildrenSeats());
+        bookingInfo.setClassType(payment.getReservation().getTrainBoxClass());
 
         PaymentDTOS.PassengerInfo passengerInfo = new PaymentDTOS.PassengerInfo();
         passengerInfo.setId(payment.getBooking().getPassenger().getId());
