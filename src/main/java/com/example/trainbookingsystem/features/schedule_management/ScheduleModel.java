@@ -32,6 +32,18 @@ public class ScheduleModel {
     @Column(name = "train_name", nullable = false, length = 100)
     private String trainName;
 
+    @Column(name = "available_economy_seats", nullable = false)
+    private Integer availableEconomySeats = 50;
+
+    @Column(name = "available_business_seats", nullable = false)
+    private Integer availableBusinessSeats = 30;
+
+    @Column(name = "available_first_class_seats", nullable = false)
+    private Integer availableFirstClassSeats = 20;
+
+    @Column(name = "available_luxury_seats", nullable = false)
+    private Integer availableLuxurySeats = 10;
+
     @Column(name = "delete_status", nullable = false)
     private Boolean deleteStatus = false;
 
@@ -43,13 +55,18 @@ public class ScheduleModel {
 
     public ScheduleModel() {}
 
-    public ScheduleModel(String fromCity, String toCity, LocalDate date, LocalTime time, String trainType, String trainName) {
+    public ScheduleModel(String fromCity, String toCity, LocalDate date, LocalTime time,
+                         String trainType, String trainName) {
         this.fromCity = fromCity;
         this.toCity = toCity;
         this.date = date;
         this.time = time;
         this.trainType = trainType;
         this.trainName = trainName;
+        this.availableEconomySeats = 50;
+        this.availableBusinessSeats = 30;
+        this.availableFirstClassSeats = 20;
+        this.availableLuxurySeats = 10;
         this.deleteStatus = false;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -144,5 +161,37 @@ public class ScheduleModel {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Integer getAvailableEconomySeats() {
+        return availableEconomySeats;
+    }
+
+    public void setAvailableEconomySeats(Integer availableEconomySeats) {
+        this.availableEconomySeats = availableEconomySeats;
+    }
+
+    public Integer getAvailableBusinessSeats() {
+        return availableBusinessSeats;
+    }
+
+    public void setAvailableBusinessSeats(Integer availableBusinessSeats) {
+        this.availableBusinessSeats = availableBusinessSeats;
+    }
+
+    public Integer getAvailableFirstClassSeats() {
+        return availableFirstClassSeats;
+    }
+
+    public void setAvailableFirstClassSeats(Integer availableFirstClassSeats) {
+        this.availableFirstClassSeats = availableFirstClassSeats;
+    }
+
+    public Integer getAvailableLuxurySeats() {
+        return availableLuxurySeats;
+    }
+
+    public void setAvailableLuxurySeats(Integer availableLuxurySeats) {
+        this.availableLuxurySeats = availableLuxurySeats;
     }
 }
