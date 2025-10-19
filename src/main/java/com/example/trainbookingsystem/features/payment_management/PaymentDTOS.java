@@ -202,6 +202,9 @@ public class PaymentDTOS {
 
     public static class BookingInfo {
         private Long id;
+        private Integer numberOfAdults;      // ADD THIS
+        private Integer numberOfChildren;    // ADD THIS
+        private String classType;            // ADD THIS
         private String additionalNotes;
         private PassengerInfo passenger;
         private ScheduleInfo schedule;
@@ -214,6 +217,31 @@ public class PaymentDTOS {
 
         public void setId(Long id) {
             this.id = id;
+        }
+
+        // ADD GETTERS AND SETTERS FOR THE NEW FIELDS
+        public Integer getNumberOfAdults() {
+            return numberOfAdults;
+        }
+
+        public void setNumberOfAdults(Integer numberOfAdults) {
+            this.numberOfAdults = numberOfAdults;
+        }
+
+        public Integer getNumberOfChildren() {
+            return numberOfChildren;
+        }
+
+        public void setNumberOfChildren(Integer numberOfChildren) {
+            this.numberOfChildren = numberOfChildren;
+        }
+
+        public String getClassType() {
+            return classType;
+        }
+
+        public void setClassType(String classType) {
+            this.classType = classType;
         }
 
         public String getAdditionalNotes() {
