@@ -65,14 +65,22 @@ public class PassengerController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletePassenger(@PathVariable Long id) {
+    public ResponseEntity<?> deletePassenger(@PathVariable Long id,
+                                             @RequestParam(required = false) Boolean keepData) {
         try {
-            boolean deleted = passengerService.deletePassenger(id);
+            boolean shouldKeepData = keepData != null ? keepData : true;
+
+            boolean deleted = passengerService.deletePassenger(id, shouldKeepData);
             if (deleted) {
-                return ResponseEntity.ok("Passenger deleted successfully");
+                String message = shouldKeepData ?
+                        "Account deleted successfully. Your data has been kept in our system as per your preference." :
+                        "Account deleted successfully. All your personal data has been completely removed from our database.";
+                return ResponseEntity.ok(message);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Passenger not found");
             }
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting passenger");
         }

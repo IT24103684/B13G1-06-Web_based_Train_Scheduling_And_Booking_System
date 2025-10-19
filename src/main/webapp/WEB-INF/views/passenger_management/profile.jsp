@@ -250,6 +250,7 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
+<!-- Enhanced Delete Confirmation Modal -->
 <div id="deleteModal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         <div class="p-6">
@@ -259,7 +260,33 @@
                 </div>
                 <h3 class="text-lg font-semibold text-foreground">Delete Account</h3>
             </div>
-            <p class="text-muted-foreground mb-6">Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.</p>
+
+            <p class="text-muted-foreground mb-4">Are you sure you want to delete your account? Please choose how you want us to handle your data:</p>
+
+            <div class="space-y-4 mb-6">
+                <!-- Option 1: Keep Data -->
+                <label class="flex items-start space-x-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                    <input type="radio" name="deleteOption" value="keep" checked class="mt-1 text-primary focus:ring-primary">
+                    <div>
+                        <span class="font-medium text-foreground">Keep my data (Recommended)</span>
+                        <p class="text-sm text-muted-foreground mt-1">
+                            We'll keep your profile data in our system with deleted status. This helps maintain system integrity and allows for better analytics.
+                        </p>
+                    </div>
+                </label>
+
+                <!-- Option 2: Remove Data -->
+                <label class="flex items-start space-x-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                    <input type="radio" name="deleteOption" value="remove" class="mt-1 text-primary focus:ring-primary">
+                    <div>
+                        <span class="font-medium text-foreground">Remove all my data</span>
+                        <p class="text-sm text-muted-foreground mt-1">
+                            Completely remove all your personal data from our database. This action cannot be undone.
+                        </p>
+                    </div>
+                </label>
+            </div>
+
             <div class="flex justify-end space-x-4">
                 <button id="cancelDeleteBtn" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
                     Cancel
@@ -271,6 +298,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <script src="/js/passenger_management/profile.js"></script>
