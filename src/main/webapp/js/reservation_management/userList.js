@@ -252,7 +252,44 @@ class UserPaymentList {
                     </button>
                 </div>
             </div>
-        `;
+            `}
+        </div>
+        
+        <div class="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+            ${canUserUpdate ? `
+            <button 
+                type="button" 
+                data-id="${reservation.id}" 
+                class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
+            >
+                <i class="fas fa-save mr-2"></i>
+                Update Status
+            </button>
+            ` : ''}
+
+            ${showPaymentButton ? `
+            <button 
+                type="button" 
+                data-id="${reservation.id}" 
+                class="make-payment-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
+            >
+                <i class="fas fa-credit-card mr-2"></i>
+                Pay Now
+            </button>
+            ` : ''}
+
+            <button 
+                type="button" 
+                data-id="${reservation.id}" 
+                class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                ${!canDelete ? 'disabled' : ''}
+            >
+                <i class="fas fa-trash-alt mr-2"></i>
+                Delete
+            </button>
+        </div>
+    </div>
+    `;
 
         return card;
     }
@@ -409,6 +446,15 @@ class UserPaymentList {
 
         document.body.insertAdjacentHTML('beforeend', detailsHTML);
         document.body.style.overflow = 'hidden';
+    }
+
+    getStatusDisplayText(status) {
+        const statusMap = {
+            'PENDING': 'Pending',
+            'CANCELLED': 'Cancelled',
+            'COMPLETED': 'Completed'
+        };
+        return statusMap[status] || status;
     }
 
     getStatusClass(status) {
@@ -615,6 +661,11 @@ class UserPaymentList {
         `;
         document.body.appendChild(alert);
         setTimeout(() => alert.remove(), 5000);
+    }
+
+    handleMakePayment(reservationId) {
+        // Redirect to payment page
+        window.location.href = '/create-payment?reservationId=' + reservationId;
     }
 }
 
