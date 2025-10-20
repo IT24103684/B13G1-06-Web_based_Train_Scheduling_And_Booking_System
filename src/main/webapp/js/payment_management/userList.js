@@ -252,44 +252,7 @@ class UserPaymentList {
                     </button>
                 </div>
             </div>
-            `}
-        </div>
-        
-        <div class="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-            ${canUserUpdate ? `
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
-            >
-                <i class="fas fa-save mr-2"></i>
-                Update Status
-            </button>
-            ` : ''}
-
-            ${showPaymentButton ? `
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="make-payment-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
-            >
-                <i class="fas fa-credit-card mr-2"></i>
-                Pay Now
-            </button>
-            ` : ''}
-
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                ${!canDelete ? 'disabled' : ''}
-            >
-                <i class="fas fa-trash-alt mr-2"></i>
-                Delete
-            </button>
-        </div>
-    </div>
-    `;
+        `;
 
         return card;
     }
@@ -448,15 +411,6 @@ class UserPaymentList {
         document.body.style.overflow = 'hidden';
     }
 
-    getStatusDisplayText(status) {
-        const statusMap = {
-            'PENDING': 'Pending',
-            'CANCELLED': 'Cancelled',
-            'COMPLETED': 'Completed'
-        };
-        return statusMap[status] || status;
-    }
-
     getStatusClass(status) {
         const classes = {
             'PENDING': 'bg-yellow-100 text-yellow-800',
@@ -483,119 +437,265 @@ class UserPaymentList {
             const reservation = booking.reservation || payment.reservation || {};
             const passenger = booking.passenger || {};
 
-            // Header
+            // Page setup
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            let yPos = margin;
+
+            // ===== HEADER WITH GRADIENT =====
             doc.setFillColor(34, 43, 69);
-            doc.rect(0, 0, 210, 40, 'F');
+            doc.rect(0, 0, pageWidth, 60, 'F');
 
+            // Logo/Title
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(24);
-            doc.text('RailSwift', 14, 20);
+            doc.setFontSize(28);
+            doc.setFont('helvetica', 'bold');
+            doc.text('RAILSWIFT', margin, 30);
+
             doc.setFontSize(12);
-            doc.text('Payment Receipt', 14, 30);
+            doc.setFont('helvetica', 'normal');
+            doc.text('PAYMENT RECEIPT', margin, 40);
 
-            // Reset text color
-            doc.setTextColor(0, 0, 0);
-
-            // Receipt Info
+            // Receipt number and date
             doc.setFontSize(10);
-            doc.text(`Receipt Date: ${new Date().toLocaleDateString()}`, 150, 15, { align: 'right' });
-            doc.text(`Payment ID: #${payment.id}`, 150, 22, { align: 'right' });
-            doc.text(`Transaction ID: ${payment.transactionId}`, 150, 29, { align: 'right' });
+            doc.text(`Receipt #${payment.id}`, pageWidth - margin, 25, { align: 'right' });
+            doc.text(`Date: ${new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })}`, pageWidth - margin, 32, { align: 'right' });
+            doc.text(`Transaction: ${payment.transactionId}`, pageWidth - margin, 39, { align: 'right' });
 
-            let yPos = 50;
+            yPos = 75;
 
-            // Payment Status
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(34, 197, 94);
-            doc.text('PAYMENT COMPLETED', 105, yPos, { align: 'center' });
+            // ===== PAYMENT STATUS BADGE =====
+            doc.setFillColor(34, 197, 94);
+            doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 25, 3, 3, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAYMENT COMPLETED', pageWidth / 2, yPos + 15, { align: 'center' });
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Paid on: ${this.formatDateTime(payment.paidAt)}`, pageWidth / 2, yPos + 22, { align: 'center' });
+
+            yPos += 40;
+
+            // ===== TWO COLUMN LAYOUT =====
+            const col1 = margin;
+            const col2 = pageWidth / 2 + 10;
+
+            // ===== LEFT COLUMN: PASSENGER & JOURNEY INFO =====
+
+            // Passenger Section
+            doc.setTextColor(34, 43, 69);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PASSENGER INFORMATION', col1, yPos);
+
+            doc.setDrawColor(200, 200, 200);
+            doc.line(col1, yPos + 2, col1 + 80, yPos + 2);
+
+            yPos += 10;
             doc.setTextColor(0, 0, 0);
-            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+
+            // Passenger details without icons
+            doc.setFont('helvetica', 'bold');
+            doc.text('Name:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${passenger.firstName} ${passenger.lastName}`, col1 + 15, yPos);
+
+            yPos += 6;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Email:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(passenger.email || 'N/A', col1 + 15, yPos);
+
+            yPos += 6;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Contact:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(passenger.contactNumber || passenger.contactNo || 'N/A', col1 + 20, yPos);
+
+            yPos += 6;
+            doc.setFont('helvetica', 'bold');
+            doc.text('NIC:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(passenger.nic || 'N/A', col1 + 12, yPos);
 
             yPos += 15;
 
-            // Passenger Information
+            // Journey Section
+            doc.setTextColor(34, 43, 69);
             doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Passenger Information', 14, yPos);
-            doc.setFont(undefined, 'normal');
+            doc.setFont('helvetica', 'bold');
+            doc.text('JOURNEY DETAILS', col1, yPos);
+            doc.setDrawColor(200, 200, 200);
+            doc.line(col1, yPos + 2, col1 + 70, yPos + 2);
+
+            yPos += 10;
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
-            yPos += 7;
-            doc.text(`Name: ${passenger.firstName} ${passenger.lastName}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Email: ${passenger.email}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Contact: ${passenger.contactNo}`, 14, yPos);
-            yPos += 5;
-            doc.text(`NIC: ${passenger.nic}`, 14, yPos);
+
+            // Train info with text-based prefix
+            doc.setFont('helvetica', 'bold');
+            doc.text('Train:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${schedule.trainName || 'N/A'} (${schedule.trainType || 'N/A'})`, col1 + 15, yPos);
 
             yPos += 12;
 
-            // Journey Details
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Journey Details', 14, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            yPos += 7;
-            doc.text(`Train: ${schedule.trainName} (${schedule.trainType})`, 14, yPos);
-            yPos += 5;
-            doc.text(`From: ${schedule.fromCity}`, 14, yPos);
-            yPos += 5;
-            doc.text(`To: ${schedule.toCity}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Date: ${new Date(schedule.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Time: ${schedule.time}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Seats: ${this.getSeatInfo(reservation, booking)}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Class: ${this.getClassInfo(reservation, booking)}`, 14, yPos);
+            // Route details
+            doc.setFont('helvetica', 'bold');
+            doc.text('From:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(schedule.fromCity || 'N/A', col1 + 15, yPos);
+
+            yPos += 6;
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('To:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(schedule.toCity || 'N/A', col1 + 15, yPos);
 
             yPos += 12;
 
-            // Payment Details
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Payment Details', 14, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            yPos += 7;
-            doc.text(`Payment Method: ${this.formatPaymentMethod(payment.paymentMethod)}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Payment Date: ${this.formatDateTime(payment.paidAt)}`, 14, yPos);
+            // Date and time
+            doc.setFont('helvetica', 'bold');
+            doc.text('Date:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            const journeyDate = schedule.date ? new Date(schedule.date).toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }) : 'N/A';
+            doc.text(journeyDate, col1 + 15, yPos);
+
+            yPos += 6;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Time:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(schedule.time || 'N/A', col1 + 15, yPos);
 
             yPos += 12;
 
-            // Amount Section
-            doc.setFillColor(240, 240, 240);
-            doc.rect(14, yPos, 182, 20, 'F');
+            // Seats and Class
+            doc.setFont('helvetica', 'bold');
+            doc.text('Seats:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(this.getSeatInfo(reservation, booking), col1 + 15, yPos);
+
+            yPos += 6;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Class:', col1, yPos);
+            doc.setFont('helvetica', 'normal');
+            doc.text(this.getClassInfo(reservation, booking), col1 + 15, yPos);
+
+            // ===== RIGHT COLUMN: PAYMENT & AMOUNT =====
+            let yPosRight = 75 + 40 + 10;
+
+            // Payment Method Section
+            doc.setTextColor(34, 43, 69);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PAYMENT METHOD', col2, yPosRight);
+            doc.setDrawColor(200, 200, 200);
+            doc.line(col2, yPosRight + 2, col2 + 70, yPosRight + 2);
+
+            yPosRight += 10;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+
+            // Payment method details
+            doc.setFont('helvetica', 'bold');
+            doc.text('Method:', col2, yPosRight);
+            doc.setFont('helvetica', 'normal');
+            doc.text(this.formatPaymentMethod(payment.paymentMethod), col2 + 20, yPosRight);
+
+            yPosRight += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Status:', col2, yPosRight);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Completed', col2 + 20, yPosRight);
+
+            yPosRight += 15;
+
+            // Amount Breakdown
+            doc.setTextColor(34, 43, 69);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('AMOUNT BREAKDOWN', col2, yPosRight);
+            doc.setDrawColor(200, 200, 200);
+            doc.line(col2, yPosRight + 2, col2 + 80, yPosRight + 2);
+
+            yPosRight += 10;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+
+            // Base fare
+            doc.setFont('helvetica', 'normal');
+            doc.text('Base Fare:', col2, yPosRight);
+            doc.text(`Rs. ${parseFloat(payment.amount).toLocaleString()}`, pageWidth - margin, yPosRight, { align: 'right' });
+
+            yPosRight += 6;
+            doc.text('Taxes & Fees:', col2, yPosRight);
+            doc.text('Rs. 0', pageWidth - margin, yPosRight, { align: 'right' });
+
+            yPosRight += 6;
+            doc.text('Discount:', col2, yPosRight);
+            doc.text('Rs. 0', pageWidth - margin, yPosRight, { align: 'right' });
+
+            yPosRight += 10;
+            doc.setDrawColor(100, 100, 100);
+            doc.line(col2, yPosRight, pageWidth - margin, yPosRight);
+
+            yPosRight += 8;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.text('Total Amount:', col2, yPosRight);
+            doc.text(`Rs. ${parseFloat(payment.amount).toLocaleString()}`, pageWidth - margin, yPosRight, { align: 'right' });
+
+            yPosRight += 20;
+
+            // ===== TOTAL AMOUNT HIGHLIGHT =====
+            const totalY = Math.max(yPos, yPosRight) + 20;
+
+            doc.setFillColor(34, 43, 69);
+            doc.roundedRect(margin, totalY, pageWidth - (margin * 2), 25, 3, 3, 'F');
+
+            doc.setTextColor(255, 255, 255);
             doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text('Total Amount Paid:', 20, yPos + 12);
-            doc.text(`Rs. ${parseFloat(payment.amount).toLocaleString()}`, 176, yPos + 12, { align: 'right' });
+            doc.setFont('helvetica', 'bold');
+            doc.text('TOTAL AMOUNT PAID', pageWidth / 2, totalY + 10, { align: 'center' });
 
-            yPos += 30;
+            doc.setFontSize(18);
+            doc.text(`Rs. ${parseFloat(payment.amount).toLocaleString()}`, pageWidth / 2, totalY + 20, { align: 'center' });
 
-            // Footer
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'normal');
+            // ===== FOOTER =====
+            const footerY = totalY + 40;
+
             doc.setTextColor(100, 100, 100);
-            doc.text('Thank you for choosing RailSwift!', 105, yPos, { align: 'center' });
-            yPos += 5;
-            doc.text('For any queries, please contact support@railswift.com', 105, yPos, { align: 'center' });
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Thank you for choosing RailSwift!', pageWidth / 2, footerY, { align: 'center' });
+            doc.text('For any queries, please contact support@railswift.com | +94 11 234 5678', pageWidth / 2, footerY + 5, { align: 'center' });
+            doc.text('This is an computer-generated receipt. No signature required.', pageWidth / 2, footerY + 12, { align: 'center' });
 
-            // Border
-            doc.setDrawColor(34, 43, 69);
+            // ===== PAGE BORDER =====
+            doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.5);
-            doc.rect(10, 45, 190, yPos - 40);
+            doc.rect(margin - 5, margin - 5, pageWidth - (margin * 2) + 10, footerY + 20 - margin + 10);
 
-            // Save
-            doc.save(`payment-receipt-${payment.id}.pdf`);
-            this.showSuccess('Receipt downloaded successfully');
+            // Save the PDF
+            doc.save(`RailSwift-Receipt-${payment.id}.pdf`);
+            this.showSuccess('Receipt downloaded successfully!');
+
         } catch (error) {
             console.error('Error generating receipt:', error);
-            this.showError('Failed to generate receipt. Please ensure jsPDF is loaded.');
+            this.showError('Failed to generate receipt. Please try again.');
         }
     }
 
@@ -661,11 +761,6 @@ class UserPaymentList {
         `;
         document.body.appendChild(alert);
         setTimeout(() => alert.remove(), 5000);
-    }
-
-    handleMakePayment(reservationId) {
-        // Redirect to payment page
-        window.location.href = '/create-payment?reservationId=' + reservationId;
     }
 }
 
