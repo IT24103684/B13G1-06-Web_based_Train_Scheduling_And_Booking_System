@@ -17,6 +17,38 @@ public class ReservationService {
     @Autowired
     private BookingRepo bookingRepo;
 
+    // Add status validation method
+    // In ReservationService.java - REPLACE the isValidStatusTransition method
+    private boolean isValidStatusTransition(String currentStatus, String newStatus) {
+        if (currentStatus.equals(newStatus)) {
+            return true; // No change is always allowed
+        }
+
+        // Only allow PENDING, CANCELLED, COMPLETED
+        if (!List.of("PENDING", "CANCELLED", "COMPLETED").contains(newStatus)) {
+            return false;
+        }
+
+        // Define allowed status transitions
+        switch (currentStatus) {
+            case "PENDING":
+                return newStatus.equals("CANCELLED") || newStatus.equals("COMPLETED");
+            case "CANCELLED":
+                // Allow CANCELLED to be changed to PENDING or COMPLETED (admin functionality)
+                return newStatus.equals("PENDING") || newStatus.equals("COMPLETED");
+            case "COMPLETED":
+                // Allow COMPLETED to be changed to PENDING or CANCELLED (admin functionality)
+                return newStatus.equals("PENDING") || newStatus.equals("CANCELLED");
+            default:
+                return false;
+        }
+    }
+
+    private boolean canDeleteReservation(String status) {
+        // Only allow deletion of non-PAID reservations
+        return !"PAID".equals(status);
+    }
+
     public List<ReservationDTOS.ReservationResponseDTO> getAllReservations() {
         return reservationRepo.findByDeleteStatusOrderByCreatedAtDesc(false).stream()
                 .map(this::convertToResponseDTO)
@@ -55,13 +87,19 @@ public class ReservationService {
             throw new RuntimeException("Reservation already exists for this booking");
         }
 
+        // Validate initial status
+        String initialStatus = createDTO.getStatus() != null ? createDTO.getStatus() : "PENDING";
+        if (!List.of("PENDING", "CANCELLED", "COMPLETED").contains(initialStatus)) {
+            throw new RuntimeException("Invalid initial status. Only PENDING, CANCELLED, or COMPLETED are allowed");
+        }
+
         ReservationModel reservation = new ReservationModel(
                 booking.get(),
                 createDTO.getNumOfAdultSeats(),
                 createDTO.getNumOfChildrenSeats(),
                 createDTO.getTrainBoxClass(),
                 createDTO.getTotalBill(),
-                createDTO.getStatus()
+                initialStatus
         );
 
         ReservationModel savedReservation = reservationRepo.save(reservation);
@@ -71,6 +109,14 @@ public class ReservationService {
     public Optional<ReservationDTOS.ReservationResponseDTO> updateReservation(Long id, ReservationDTOS.UpdateReservationDTO updateDTO) {
         return reservationRepo.findByIdAndDeleteStatus(id, false)
                 .map(reservation -> {
+                    // Validate status transition if status is being updated
+                    if (updateDTO.getStatus() != null && !updateDTO.getStatus().equals(reservation.getStatus())) {
+                        if (!isValidStatusTransition(reservation.getStatus(), updateDTO.getStatus())) {
+                            throw new RuntimeException("Invalid status transition from " + reservation.getStatus() + " to " + updateDTO.getStatus());
+                        }
+                    }
+
+                    // Apply updates
                     if (updateDTO.getNumOfAdultSeats() != null) {
                         reservation.setNumOfAdultSeats(updateDTO.getNumOfAdultSeats());
                     }
@@ -86,6 +132,7 @@ public class ReservationService {
                     if (updateDTO.getStatus() != null) {
                         reservation.setStatus(updateDTO.getStatus());
                     }
+
                     return convertToResponseDTO(reservationRepo.save(reservation));
                 });
     }
@@ -94,6 +141,12 @@ public class ReservationService {
         Optional<ReservationModel> reservation = reservationRepo.findByIdAndDeleteStatus(id, false);
         if (reservation.isPresent()) {
             ReservationModel reservationModel = reservation.get();
+
+            // Check if reservation can be deleted
+            if (!canDeleteReservation(reservationModel.getStatus())) {
+                throw new RuntimeException("Cannot delete PAID reservations");
+            }
+
             reservationModel.setDeleteStatus(true);
             reservationRepo.save(reservationModel);
             return true;
