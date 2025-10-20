@@ -33,6 +33,9 @@ class AdminReservationList {
     }
 
     bindEvents() {
+        // Update status filter options first
+        this.updateStatusFilterOptions();
+
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
         this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
@@ -101,6 +104,16 @@ class AdminReservationList {
         }
     }
 
+    // NEW METHOD: Update status filter options
+    updateStatusFilterOptions() {
+        this.elements.statusFilter.innerHTML = `
+        <option value="">All Status</option>
+        <option value="PENDING">Pending</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+    `;
+    }
+
     showState(stateName) {
         Object.keys(this.elements).forEach(key => {
             if (key.endsWith('State') || key === 'reservationTable') {
@@ -160,8 +173,7 @@ class AdminReservationList {
                 schedule.trainName?.toLowerCase().includes(searchTerm) ||
                 schedule.fromCity?.toLowerCase().includes(searchTerm) ||
                 schedule.toCity?.toLowerCase().includes(searchTerm) ||
-                reservation.trainBoxClass?.toLowerCase().includes(searchTerm) ||
-                reservation.paidMethod?.toLowerCase().includes(searchTerm);
+                reservation.trainBoxClass?.toLowerCase().includes(searchTerm);
 
             const matchesStatus = !selectedStatus || reservation.status === selectedStatus;
 
@@ -232,7 +244,6 @@ class AdminReservationList {
                     </td>
                     <td class="p-4 align-middle">
                         <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
-                        <div class="text-sm text-muted-foreground">${reservation.paidMethod || 'N/A'}</div>
                     </td>
                     <td class="p-4 align-middle">
                         <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -274,9 +285,10 @@ class AdminReservationList {
     getStatusClass(status) {
         const classes = {
             'PENDING': 'bg-yellow-100 text-yellow-800',
-            'CONFIRMED': 'bg-green-100 text-green-800',
+            'CONFIRMED': 'bg-blue-100 text-blue-800',
             'CANCELLED': 'bg-red-100 text-red-800',
-            'COMPLETED': 'bg-blue-100 text-blue-800'
+            'PAID': 'bg-green-100 text-green-800',
+            'COMPLETED': 'bg-purple-100 text-purple-800'
         };
         return classes[status] || 'bg-gray-100 text-gray-800';
     }
@@ -322,7 +334,6 @@ class AdminReservationList {
         document.getElementById('viewChildSeats').textContent = reservation.numOfChildrenSeats || 0;
         document.getElementById('viewTrainBoxClass').textContent = reservation.trainBoxClass || 'N/A';
         document.getElementById('viewTotalBill').textContent = `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`;
-        document.getElementById('viewPaidMethod').textContent = reservation.paidMethod || 'N/A';
         document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${this.getStatusClass(reservation.status)}`;
         document.getElementById('viewStatus').textContent = reservation.status || 'N/A';
         document.getElementById('viewCreatedAt').textContent = formattedCreatedAt;
@@ -349,8 +360,15 @@ class AdminReservationList {
         document.getElementById('editNumOfChildrenSeats').value = reservation.numOfChildrenSeats || 0;
         document.getElementById('editTrainBoxClass').value = reservation.trainBoxClass || 'Economy';
         document.getElementById('editTotalBill').value = reservation.totalBill || 0;
-        document.getElementById('editPaidMethod').value = reservation.paidMethod || 'CREDIT_CARD';
-        document.getElementById('editStatus').value = reservation.status || 'PENDING';
+
+        // Update status dropdown with only allowed options
+        const statusSelect = document.getElementById('editStatus');
+        statusSelect.innerHTML = `
+        <option value="PENDING">Pending</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+    `;
+        statusSelect.value = reservation.status || 'PENDING';
 
         // Calculate total bill
         this.calculateTotalBill();
@@ -429,7 +447,6 @@ class AdminReservationList {
             numOfChildrenSeats: parseInt(formData.get('numOfChildrenSeats')) || 0,
             trainBoxClass: formData.get('trainBoxClass'),
             totalBill: parseFloat(formData.get('totalBill')) || 0,
-            paidMethod: formData.get('paidMethod'),
             status: formData.get('status')
         };
 
@@ -554,13 +571,12 @@ class AdminReservationList {
                     `${reservation.numOfAdultSeats || 0}A/${reservation.numOfChildrenSeats || 0}C`,
                     reservation.trainBoxClass || 'N/A',
                     `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`,
-                    reservation.paidMethod || 'N/A',
                     reservation.status || 'N/A'
                 ];
             });
 
             doc.autoTable({
-                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Seats', 'Class', 'Amount', 'Payment', 'Status']],
+                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Seats', 'Class', 'Amount', 'Status']],
                 body: tableData,
                 startY: 40,
                 styles: {
@@ -581,8 +597,7 @@ class AdminReservationList {
                     5: { cellWidth: 25 },
                     6: { cellWidth: 25 },
                     7: { cellWidth: 30 },
-                    8: { cellWidth: 30 },
-                    9: { cellWidth: 25 }
+                    8: { cellWidth: 25 }
                 }
             });
 

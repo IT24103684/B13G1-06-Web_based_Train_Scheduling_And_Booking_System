@@ -1,21 +1,17 @@
-class UserBookingList {
+class UserReservationList {
     constructor() {
         this.passengerId = null;
-        this.bookings = [];
-        this.container = document.getElementById('bookingsContainer');
+        this.reservations = [];
+        this.container = document.getElementById('reservationsContainer');
         this.loadingState = document.getElementById('loadingState');
-        this.noBookingsState = document.getElementById('noBookingsState');
-        this.editModal = document.getElementById('editModal');
-        this.editForm = document.getElementById('editForm');
-        this.editBookingId = null;
+        this.noReservationsState = document.getElementById('noReservationsState');
 
         this.init();
     }
 
     init() {
         this.checkAuthentication();
-        this.loadBookings();
-        this.bindModalEvents();
+        this.loadReservations();
     }
 
     checkAuthentication() {
@@ -31,7 +27,7 @@ class UserBookingList {
         if (show) {
             this.loadingState.classList.remove('hidden');
             this.container.classList.add('hidden');
-            this.noBookingsState.classList.add('hidden');
+            this.noReservationsState.classList.add('hidden');
         } else {
             this.loadingState.classList.add('hidden');
         }
@@ -39,9 +35,7 @@ class UserBookingList {
 
     showError(message) {
         const existingAlert = document.querySelector('.error-alert');
-        if (existingAlert) {
-            existingAlert.remove();
-        }
+        if (existingAlert) existingAlert.remove();
 
         const alert = document.createElement('div');
         alert.className = 'error-alert fixed top-4 right-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50';
@@ -55,18 +49,12 @@ class UserBookingList {
 
         document.body.appendChild(alert);
 
-        setTimeout(() => {
-            if (alert.parentElement) {
-                alert.remove();
-            }
-        }, 5000);
+        setTimeout(() => alert.remove(), 5000);
     }
 
     showSuccess(message) {
         const existingAlert = document.querySelector('.success-alert');
-        if (existingAlert) {
-            existingAlert.remove();
-        }
+        if (existingAlert) existingAlert.remove();
 
         const alert = document.createElement('div');
         alert.className = 'success-alert fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50 animate-pulse';
@@ -77,60 +65,58 @@ class UserBookingList {
 
         document.body.appendChild(alert);
 
-        setTimeout(() => {
-            alert.remove();
-        }, 5000);
+        setTimeout(() => alert.remove(), 5000);
     }
 
-    async loadBookings() {
+    async loadReservations() {
         this.showLoading(true);
 
         try {
-            const response = await fetch(`/api/bookings/passenger/${this.passengerId}`);
+            const response = await fetch(`/api/reservations/passenger/${this.passengerId}`);
             if (response.ok) {
-                this.bookings = await response.json();
-                this.renderBookings();
+                this.reservations = await response.json();
+                this.renderReservations();
             } else {
-                this.showError('Failed to load your bookings.');
+                this.showError('Failed to load your reservations.');
                 this.container.classList.add('hidden');
-                this.noBookingsState.classList.remove('hidden');
+                this.noReservationsState.classList.remove('hidden');
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
             this.container.classList.add('hidden');
-            this.noBookingsState.classList.remove('hidden');
+            this.noReservationsState.classList.remove('hidden');
         } finally {
             this.showLoading(false);
         }
     }
 
-    renderBookings() {
+    renderReservations() {
         this.container.innerHTML = '';
 
-        if (this.bookings.length === 0) {
+        if (this.reservations.length === 0) {
             this.container.classList.add('hidden');
-            this.noBookingsState.classList.remove('hidden');
+            this.noReservationsState.classList.remove('hidden');
             return;
         }
 
-        this.noBookingsState.classList.add('hidden');
+        this.noReservationsState.classList.add('hidden');
         this.container.classList.remove('hidden');
 
-        this.bookings.forEach(booking => {
-            const card = this.createBookingCard(booking);
+        this.reservations.forEach(reservation => {
+            const card = this.createReservationCard(reservation);
             this.container.appendChild(card);
         });
     }
 
-    createBookingCard(booking) {
+    createReservationCard(reservation) {
         const card = document.createElement('div');
         card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-6 border border-gray-200';
-        card.dataset.bookingId = booking.id;
+        card.dataset.reservationId = reservation.id;
 
+        const booking = reservation.booking || {};
         const schedule = booking.schedule || {};
         const passenger = booking.passenger || {};
 
-        // Format date and time
         const formattedDate = schedule.date ? new Date(schedule.date).toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
@@ -144,16 +130,16 @@ class UserBookingList {
             hour12: true
         }) : 'N/A';
 
+        const totalBill = reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0';
+
         card.innerHTML = `
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 class="text-lg font-bold text-foreground">Booking #${booking.id}</h3>
-                    <p class="text-sm text-muted-foreground">Created on ${booking.createdAt ? new Date(booking.createdAt).toLocaleString() : 'N/A'}</p>
+                    <h3 class="text-lg font-bold text-foreground">Reservation #${reservation.id}</h3>
+                    <p class="text-sm text-muted-foreground">Booked on ${reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A'}</p>
                 </div>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            booking.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-        }">
-                    ${booking.deleteStatus ? 'Deleted' : 'Active'}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${this.getStatusClass(reservation.status)}">
+                    ${reservation.status || 'UNKNOWN'}
                 </span>
             </div>
 
@@ -172,161 +158,163 @@ class UserBookingList {
                     <p class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</p>
                 </div>
                 <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Notes</h4>
-                    <p class="text-sm italic">${booking.additionalNotes || 'None provided'}</p>
+                    <h4 class="font-medium text-foreground">Seats</h4>
+                    <p class="text-sm">Adults: ${reservation.numOfAdultSeats || 0}</p>
+                    <p class="text-sm">Children: ${reservation.numOfChildrenSeats || 0}</p>
+                    <p class="text-sm">Class: ${reservation.trainBoxClass || 'N/A'}</p>
                 </div>
                 <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Status</h4>
-                    <p class="text-sm">Last updated: ${booking.updatedAt ? new Date(booking.updatedAt).toLocaleString() : 'Never'}</p>
+                    <h4 class="font-medium text-foreground">Payment</h4>
+                    <!-- Remove payment method display -->
+                    <p class="text-sm font-bold">Total: Rs. ${totalBill}</p>
+                    <p class="text-xs text-muted-foreground">Booking ID: #${booking.id || 'N/A'}</p>
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
-                <button 
-                    type="button" 
-                    data-id="${booking.id}" 
-                    class="edit-booking-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
-                    ${booking.deleteStatus ? 'disabled' : ''}
-                >
-                    <i class="fas fa-edit mr-2"></i>
-                    Edit
-                </button>
-                <button 
-                    type="button" 
-                    data-id="${booking.id}" 
-                    class="delete-booking-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
-                    ${booking.deleteStatus ? 'disabled' : ''}
-                >
-                    <i class="fas fa-trash-alt mr-2"></i>
-                    Delete
-                </button>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
+                <div class="w-full sm:w-auto">
+                    <label for="status-${reservation.id}" class="block text-sm font-medium text-foreground mb-1">Status</label>
+                    <select
+                        ${reservation.status === 'CANCELLED' ? 'disabled' : ''}
+                        id="status-${reservation.id}"
+                        class="status-select block w-full sm:w-48 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+            reservation.status === 'CANCELLED'
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : ''
+        }"
+                    >
+                        <option value="${reservation.status}" selected>
+                            ${reservation.status === 'PENDING' ? 'Pending' :
+            reservation.status === 'CONFIRMED' ? 'Confirmed' :
+                reservation.status === 'CANCELLED' ? 'Cancelled' :
+                    reservation.status === 'COMPLETED' ? 'Completed' : reservation.status}
+                        </option>
+
+                        ${reservation.status === 'PENDING' ? `
+                            <option value="CONFIRMED">Confirm Reservation</option>
+                            <option value="CANCELLED">Cancel Reservation</option>
+                        ` : ''}
+
+                        ${reservation.status === 'CONFIRMED' ? `
+                            <option value="COMPLETED">Mark as Completed</option>
+                            <option value="CANCELLED">Cancel Reservation</option>
+                        ` : ''}
+                    </select>
+                </div>
+                <div class="flex space-x-3 w-full sm:w-auto">
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
+                    >
+                        <i class="fas fa-save mr-2"></i>
+                        Save
+                    </button>
+
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
+                    >
+                        <i class="fas fa-trash-alt mr-2"></i>
+                        Delete
+                    </button>
+
+                    <!-- Payment button - Show only for pending payments -->
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="make-payment-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
+                        ${reservation.status !== 'PENDING' ? 'disabled' : ''}
+                    >
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Pay Now
+                    </button>
+                </div>
             </div>
         `;
 
-        // Bind events
-        const editBtn = card.querySelector('.edit-booking-btn');
-        const deleteBtn = card.querySelector('.delete-booking-btn');
+        const updateBtn = card.querySelector('.update-status-btn');
+        const deleteBtn = card.querySelector('.delete-reservation-btn');
+        const paymentBtn = card.querySelector('.make-payment-btn');
+        const statusSelect = card.querySelector('.status-select');
 
-        if (editBtn) {
-            editBtn.addEventListener('click', () => this.openEditModal(booking));
-        }
-
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => this.handleDeleteBooking(booking.id));
+        updateBtn.addEventListener('click', () => this.handleUpdateStatus(reservation.id, statusSelect.value));
+        deleteBtn.addEventListener('click', () => this.handleDeleteReservation(reservation.id));
+        if (paymentBtn) {
+            paymentBtn.addEventListener('click', () => this.handleMakePayment(reservation.id));
         }
 
         return card;
     }
 
-    openEditModal(booking) {
-        this.editBookingId = booking.id;
-        const notesTextarea = document.getElementById('editAdditionalNotes');
-        notesTextarea.value = booking.additionalNotes || '';
-        this.editModal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden'); // Prevent background scroll
+    getStatusClass(status) {
+        const classes = {
+            'PENDING': 'bg-yellow-100 text-yellow-800',
+            'CONFIRMED': 'bg-green-100 text-green-800',
+            'CANCELLED': 'bg-red-100 text-red-800',
+            'COMPLETED': 'bg-blue-100 text-blue-800'
+        };
+        return classes[status] || 'bg-gray-100 text-gray-800';
     }
 
-    closeEditModal() {
-        this.editBookingId = null;
-        this.editForm.reset();
-        this.editModal.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-    }
-
-    bindModalEvents() {
-        // Close modal on backdrop click
-        this.editModal.addEventListener('click', (e) => {
-            if (e.target === this.editModal) {
-                this.closeEditModal();
-            }
-        });
-
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.editModal.classList.contains('hidden')) {
-                this.closeEditModal();
-            }
-        });
-
-        // Handle form submit
-        this.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
-    }
-
-    async handleEditSubmit(e) {
-        e.preventDefault();
-
-        if (!this.editBookingId) {
-            this.showError('No booking selected for editing.');
+    async handleUpdateStatus(reservationId, newStatus) {
+        if (!reservationId || !newStatus) {
+            this.showError('Invalid reservation or status.');
             return;
         }
 
-        const formData = new FormData(this.editForm);
-        const updateData = {
-            additionalNotes: formData.get('additionalNotes').trim() || null
-        };
-
-        const saveBtn = document.getElementById('saveEditBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+        const btn = document.querySelector(`.update-status-btn[data-id="${reservationId}"]`);
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
         try {
-            const response = await fetch(`/api/bookings/${this.editBookingId}`, {
+            const response = await fetch(`/api/reservations/${reservationId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updateData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
             });
 
             if (response.ok) {
-                this.showSuccess('Booking updated successfully!');
-                this.closeEditModal();
-                // Refresh the list
-                setTimeout(() => {
-                    this.loadBookings();
-                }, 1000);
+                this.showSuccess('Reservation status updated successfully!');
+                setTimeout(() => this.loadReservations(), 1000);
             } else {
                 const error = await response.text();
-                this.showError(error || 'Failed to update booking.');
+                this.showError(error || 'Failed to update reservation status.');
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
         } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     }
 
-    async handleDeleteBooking(bookingId) {
-        if (!confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
-            return;
-        }
+    async handleDeleteReservation(reservationId) {
+        if (!confirm('Are you sure you want to delete this reservation? This action cannot be undone.')) return;
 
-        const card = document.querySelector(`[data-booking-id="${bookingId}"]`);
+        const card = document.querySelector(`[data-reservation-id="${reservationId}"]`);
         if (!card) return;
 
-        const deleteBtn = card.querySelector('.delete-booking-btn');
+        const deleteBtn = card.querySelector('.delete-reservation-btn');
         const originalText = deleteBtn.innerHTML;
         deleteBtn.disabled = true;
         deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Deleting...';
 
         try {
-            const response = await fetch(`/api/bookings/${bookingId}`, {
-                method: 'DELETE'
-            });
+            const response = await fetch(`/api/reservations/${reservationId}`, { method: 'DELETE' });
 
             if (response.ok) {
-                this.showSuccess('Booking deleted successfully!');
+                this.showSuccess('Reservation deleted successfully!');
                 card.remove();
-                // Check if no cards left
-                if (document.querySelectorAll('[data-booking-id]').length === 0) {
+                if (document.querySelectorAll('[data-reservation-id]').length === 0) {
                     this.container.classList.add('hidden');
-                    this.noBookingsState.classList.remove('hidden');
+                    this.noReservationsState.classList.remove('hidden');
                 }
             } else {
                 const error = await response.text();
-                this.showError(error || 'Failed to delete booking.');
+                this.showError(error || 'Failed to delete reservation.');
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
@@ -335,8 +323,21 @@ class UserBookingList {
             deleteBtn.innerHTML = originalText;
         }
     }
+
+    handleMakePayment(reservationId) {
+        // Try these paths in order of likelihood:
+
+        // Option 1: Direct to controller mapping (Recommended)
+        window.location.href = '/create-payment?reservationId=' + reservationId;
+
+        // Option 2: If using Spring MVC with prefix/suffix configuration
+        // window.location.href = '/payment/create?reservationId=' + reservationId;
+
+        // Option 3: Direct JSP path (less common in Spring Boot)
+        // window.location.href = '/WEB-INF/views/payment_management/create.jsp?reservationId=' + reservationId;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new UserBookingList();
+    new UserReservationList();
 });

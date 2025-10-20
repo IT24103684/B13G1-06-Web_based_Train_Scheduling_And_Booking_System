@@ -32,9 +32,6 @@ public class ReservationModel {
     @Column(name = "total_bill", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalBill;
 
-    @Column(name = "paid_method")
-    private String paidMethod;
-
     @Column(nullable = false)
     private String status;
 
@@ -46,13 +43,12 @@ public class ReservationModel {
 
     public ReservationModel() {}
 
-    public ReservationModel(BookingModel booking, Integer numOfAdultSeats, Integer numOfChildrenSeats, String trainBoxClass, BigDecimal totalBill, String paidMethod, String status) {
+    public ReservationModel(BookingModel booking, Integer numOfAdultSeats, Integer numOfChildrenSeats, String trainBoxClass, BigDecimal totalBill, String status) {
         this.booking = booking;
         this.numOfAdultSeats = numOfAdultSeats;
         this.numOfChildrenSeats = numOfChildrenSeats;
         this.trainBoxClass = trainBoxClass;
         this.totalBill = totalBill;
-        this.paidMethod = paidMethod;
         this.status = status;
         this.deleteStatus = false;
         this.createdAt = LocalDateTime.now();
@@ -124,14 +120,6 @@ public class ReservationModel {
 
     public void setTotalBill(BigDecimal totalBill) {
         this.totalBill = totalBill;
-    }
-
-    public String getPaidMethod() {
-        return paidMethod;
-    }
-
-    public void setPaidMethod(String paidMethod) {
-        this.paidMethod = paidMethod;
     }
 
     public String getStatus() {

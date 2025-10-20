@@ -13,7 +13,6 @@ public class ReservationDTOS {
         private Integer numOfChildrenSeats;
         private String trainBoxClass;
         private BigDecimal totalBill;
-        private String paidMethod;
         private String status;
 
         public CreateReservationDTO() {}
@@ -58,14 +57,6 @@ public class ReservationDTOS {
             this.totalBill = totalBill;
         }
 
-        public String getPaidMethod() {
-            return paidMethod;
-        }
-
-        public void setPaidMethod(String paidMethod) {
-            this.paidMethod = paidMethod;
-        }
-
         public String getStatus() {
             return status;
         }
@@ -80,7 +71,6 @@ public class ReservationDTOS {
         private Integer numOfChildrenSeats;
         private String trainBoxClass;
         private BigDecimal totalBill;
-        private String paidMethod;
         private String status;
 
         public UpdateReservationDTO() {}
@@ -117,14 +107,6 @@ public class ReservationDTOS {
             this.totalBill = totalBill;
         }
 
-        public String getPaidMethod() {
-            return paidMethod;
-        }
-
-        public void setPaidMethod(String paidMethod) {
-            this.paidMethod = paidMethod;
-        }
-
         public String getStatus() {
             return status;
         }
@@ -142,7 +124,6 @@ public class ReservationDTOS {
         private Integer numOfChildrenSeats;
         private String trainBoxClass;
         private BigDecimal totalBill;
-        private String paidMethod;
         private String status;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
@@ -203,14 +184,6 @@ public class ReservationDTOS {
 
         public void setTotalBill(BigDecimal totalBill) {
             this.totalBill = totalBill;
-        }
-
-        public String getPaidMethod() {
-            return paidMethod;
-        }
-
-        public void setPaidMethod(String paidMethod) {
-            this.paidMethod = paidMethod;
         }
 
         public String getStatus() {
