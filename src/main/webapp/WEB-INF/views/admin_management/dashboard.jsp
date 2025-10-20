@@ -174,9 +174,25 @@
             </div>
         </div>
 
-        <!-- Reservation Management -->
+        <!-- Payment Management -->
         <div class="nav-card card-hover glass-effect rounded-2xl p-8 border border-white/20 cursor-pointer fade-in-up"
              style="animation-delay: 0.5s;"
+             data-route="/payment-list">
+            <div class="text-center">
+                <div class="bg-teal-500/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-credit-card text-3xl text-teal-300"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-3">Payment Management</h3>
+                <p class="text-blue-100 mb-6">View payment transactions, refunds, and financial records</p>
+                <div class="flex justify-center">
+                    <i class="fas fa-arrow-right text-white opacity-70"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservation Management -->
+        <div class="nav-card card-hover glass-effect rounded-2xl p-8 border border-white/20 cursor-pointer fade-in-up"
+             style="animation-delay: 0.6s;"
              data-route="/reservation-list">
             <div class="text-center">
                 <div class="bg-pink-500/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -192,7 +208,7 @@
 
         <!-- Feedback Management -->
         <div class="nav-card card-hover glass-effect rounded-2xl p-8 border border-white/20 cursor-pointer fade-in-up"
-             style="animation-delay: 0.6s;"
+             style="animation-delay: 0.7s;"
              data-route="/feedback-list">
             <div class="text-center">
                 <div class="bg-yellow-500/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -208,7 +224,7 @@
     </div>
 
     <!-- Quick Stats Section -->
-    <div class="mt-16 fade-in-up" style="animation-delay: 0.7s;">
+    <div class="mt-16 fade-in-up" style="animation-delay: 0.8s;">
         <h3 class="text-2xl font-bold text-white mb-8 text-center">Quick Overview</h3>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
@@ -222,9 +238,9 @@
                 <p class="text-blue-100">Pending Bookings</p>
             </div>
             <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
-                <i class="fas fa-calendar-alt text-3xl text-orange-300 mb-3"></i>
-                <p class="text-2xl font-bold text-white">24</p>
-                <p class="text-blue-100">Active Schedules</p>
+                <i class="fas fa-credit-card text-3xl text-teal-300 mb-3"></i>
+                <p class="text-2xl font-bold text-white">$12,458</p>
+                <p class="text-blue-100">Today's Revenue</p>
             </div>
             <div class="glass-effect rounded-xl p-6 border border-white/20 text-center">
                 <i class="fas fa-star text-3xl text-yellow-300 mb-3"></i>
@@ -244,6 +260,45 @@
     </div>
 </footer>
 
-<script src="/js/admin_management/dashboard.js"></script>
+<script>
+    // Update current time
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('current-time').textContent = timeString;
+    }
+
+    // Set up navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Add click handlers to navigation cards
+        const navCards = document.querySelectorAll('.nav-card');
+        navCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const route = this.getAttribute('data-route');
+                // Navigate to the specified route
+                window.location.href = route;
+            });
+        });
+
+        // Logout button handler
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                // Perform logout action
+                window.location.href = '/logout';
+            }
+        });
+    });
+</script>
 </body>
 </html>

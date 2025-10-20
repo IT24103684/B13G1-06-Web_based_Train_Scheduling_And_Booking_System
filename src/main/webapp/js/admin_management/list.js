@@ -99,46 +99,62 @@ class AdminList {
         this.showState('adminTable');
 
         this.elements.adminTableBody.innerHTML = this.filteredAdmins.map(admin => `
-            <tr class="border-b transition-colors hover:bg-muted/50">
-                <td class="p-4 align-middle">
-                    <div>
-                        <div class="font-medium text-foreground">${this.escapeHtml(admin.name)}</div>
-                        ${admin.description ? <div class="text-sm text-muted-foreground mt-1">${this.escapeHtml(admin.description)}</div> : ''}
-                    </div>
-                </td>
-                <td class="p-4 align-middle">
-                    <span class="text-sm text-foreground">${this.escapeHtml(admin.email)}</span>
-                </td>
-                <td class="p-4 align-middle">
-                    <span class="text-sm text-foreground">${this.escapeHtml(admin.contactNumber)}</span>
-                </td>
-                <td class="p-4 align-middle">
-                    <span class="text-sm text-muted-foreground">${this.formatDate(admin.createdAt)}</span>
-                </td>
-                <td class="p-4 align-middle">
-                     <span class="text-sm text-foreground">${this.escapeHtml(admin.role)}</span>
-                </td>
+        <tr class="border-b transition-colors hover:bg-muted/50">
+            <td class="p-4 align-middle">
+                <div>
+                    <div class="font-medium text-foreground">${this.escapeHtml(admin.name)}</div>
+                    ${admin.description ? <div class="text-sm text-muted-foreground mt-1">${this.escapeHtml(admin.description)}</div> : ''}
+                </div>
+            </td>
+            <td class="p-4 align-middle">
+                <span class="text-sm text-foreground">${this.escapeHtml(admin.email)}</span>
+            </td>
+            <td class="p-4 align-middle">
+                <span class="text-sm text-foreground">${this.escapeHtml(admin.contactNumber)}</span>
+            </td>
+            <td class="p-4 align-middle">
+                <span class="text-sm text-muted-foreground">${this.formatDate(admin.createdAt)}</span>
+            </td>
+            <td class="p-4 align-middle">
+                <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+            admin.role === 'SUPER_ADMIN'
+                ? 'bg-purple-100 text-purple-800 border-purple-200'
+                : admin.role === 'MODERATOR'
+                    ? 'bg-orange-100 text-orange-800 border-orange-200'
+                    : 'bg-blue-100 text-blue-800 border-blue-200'
+        }">
+                    ${this.escapeHtml(this.formatRole(admin.role))}
+                </span>
+            </td>
+            <td class="p-4 align-middle text-right">
+                <div class="flex items-center justify-end space-x-2">
+                    <button 
+                        class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                        data-admin-id="${admin.id}"
+                        title="Edit Admin"
+                    >
+                        <i class="fas fa-edit text-primary"></i>
+                    </button>
+                    <button 
+                        class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                        data-admin-id="${admin.id}"
+                        title="Delete Admin"
+                    >
+                        <i class="fas fa-trash text-destructive"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    }
 
-                <td class="p-4 align-middle text-right">
-                    <div class="flex items-center justify-end space-x-2">
-                        <button 
-                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                            data-admin-id="${admin.id}"
-                            title="Edit Admin"
-                        >
-                            <i class="fas fa-edit text-primary"></i>
-                        </button>
-                        <button 
-                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                            data-admin-id="${admin.id}"
-                            title="Delete Admin"
-                        >
-                            <i class="fas fa-trash text-destructive"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+    formatRole(role) {
+        const roleMap = {
+            'SUPER_ADMIN': 'Super Admin',
+            'ADMIN': 'Admin',
+            'MODERATOR': 'Moderator'
+        };
+        return roleMap[role] || role;
     }
 
     showDeleteModal(adminId) {
@@ -213,10 +229,14 @@ class AdminList {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
+            // Title
             doc.setFontSize(20);
+            doc.setTextColor(41, 41, 41);
             doc.text('Admin List Report', 14, 22);
 
+            // Generation date
             doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
             doc.text(`Generated on: ${new Date().toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -225,40 +245,64 @@ class AdminList {
                 minute: '2-digit'
             })}`, 14, 30);
 
+            // Total count
+            doc.text(Total Admins: ${this.filteredAdmins.length}, 14, 36);
+
             const tableData = this.filteredAdmins.map(admin => [
                 admin.name,
                 admin.email,
                 admin.contactNumber,
+                this.formatRole(admin.role),
                 this.formatDate(admin.createdAt),
-                admin.description || 'N/A'
+                admin.description || '-'
             ]);
 
             doc.autoTable({
-                head: [['Name', 'Email', 'Contact', 'Created', 'Description']],
+                head: [['Name', 'Email', 'Contact', 'Role', 'Created', 'Description']],
                 body: tableData,
-                startY: 40,
+                startY: 45,
                 styles: {
-                    fontSize: 9,
+                    fontSize: 8,
                     cellPadding: 3,
+                    textColor: [41, 41, 41],
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1
                 },
                 headStyles: {
-                    fillColor: [41, 41, 41],
+                    fillColor: [59, 130, 246], // Blue color
                     textColor: [255, 255, 255],
-                    fontStyle: 'bold'
+                    fontStyle: 'bold',
+                    fontSize: 9
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 252] // Light gray for alternate rows
                 },
                 columnStyles: {
-                    0: { cellWidth: 35 },
-                    1: { cellWidth: 45 },
-                    2: { cellWidth: 30 },
-                    3: { cellWidth: 25 },
-                    4: { cellWidth: 45 }
-                }
+                    0: { cellWidth: 28, fontStyle: 'bold' }, // Name
+                    1: { cellWidth: 42 }, // Email
+                    2: { cellWidth: 22 }, // Contact
+                    3: { cellWidth: 18 }, // Role
+                    4: { cellWidth: 22 }, // Created
+                    5: { cellWidth: 38 }  // Description
+                },
+                margin: { top: 45 },
+                tableWidth: 'wrap'
             });
+
+            // Add page numbers if multiple pages
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text(Page ${i} of ${pageCount}, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10);
+            }
 
             doc.save(admin-list-${new Date().toISOString().split('T')[0]}.pdf);
             this.showSuccess('PDF exported successfully!');
 
         } catch (error) {
+            console.error('PDF Export Error:', error);
             this.showError('Failed to export PDF. Please try again.');
         }
     }

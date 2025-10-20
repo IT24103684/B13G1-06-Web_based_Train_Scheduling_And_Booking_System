@@ -55,10 +55,10 @@
 <body class="bg-gray-50 min-h-screen">
 <div class="container mx-auto px-4 py-8">
     <div class="mb-6">
-        <button onclick="history.back()" class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
+        <a href="/admin-dashboard" class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
             <i class="fas fa-arrow-left mr-2"></i>
-            Back
-        </button>
+            Back to Dashboard
+        </a>
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border">
