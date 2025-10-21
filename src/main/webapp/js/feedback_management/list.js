@@ -58,6 +58,7 @@ class AdminFeedbackList {
             this.filteredFeedbacks = [...this.feedbacks];
             this.renderTable();
         } catch (error) {
+            console.error('Error loading feedbacks:', error);
             this.showState('errorState');
         }
     }
@@ -118,15 +119,11 @@ class AdminFeedbackList {
 
         this.elements.feedbackTableBody.innerHTML = this.filteredFeedbacks.map(feedback => {
             const createdBy = feedback.createdBy || {};
-
-            // Format date
             const formattedDate = feedback.createdAt ? new Date(feedback.createdAt).toLocaleString() : 'N/A';
-
-            // Generate stars HTML
             const starsHtml = this.renderStars(feedback.numOfStars);
 
             return `
-                <tr class="border-b transition-colors hover:bg-muted/50">
+                <tr class="border-b transition-colors hover:bg-muted/50" data-feedback-id="${feedback.id}">
                     <td class="p-4 align-middle">
                         <div class="font-medium text-foreground">${this.escapeHtml(feedback.title || 'Untitled Feedback')}</div>
                         <div class="text-sm text-muted-foreground">ID: #${feedback.id}</div>
@@ -158,9 +155,99 @@ class AdminFeedbackList {
                     <td class="p-4 align-middle">
                         <span class="text-sm text-muted-foreground">${formattedDate}</span>
                     </td>
+                    <td class="p-4 align-middle">
+                        <div class="flex items-center space-x-2">
+                            ${!feedback.deleteStatus ? `
+                                <button 
+                                    onclick="adminFeedbackList.handleSoftDelete(${feedback.id})" 
+                                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 text-yellow-600 hover:text-yellow-800"
+                                    title="Soft Delete"
+                                >
+                                    <i class="fas fa-archive"></i>
+                                </button>
+                            ` : `
+                                <button 
+                                    onclick="adminFeedbackList.handleRestore(${feedback.id})" 
+                                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 text-green-600 hover:text-green-800"
+                                    title="Restore"
+                                >
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            `}
+                            <button 
+                                onclick="adminFeedbackList.handleHardDelete(${feedback.id})" 
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 text-red-600 hover:text-red-800"
+                                title="Permanently Delete"
+                            >
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>
             `;
         }).join('');
+    }
+
+    async handleSoftDelete(feedbackId) {
+        if (!confirm('Are you sure you want to soft delete this feedback? It will be archived but can be restored later.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/feedbacks/${feedbackId}?hardDelete=false`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                this.showSuccess('Feedback soft deleted successfully!');
+                this.loadFeedbacks(); // Reload to refresh the table
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to soft delete feedback.');
+            }
+        } catch (error) {
+            this.showError('Network error. Please try again.');
+        }
+    }
+
+    async handleHardDelete(feedbackId) {
+        if (!confirm('⚠️ WARNING: This will PERMANENTLY delete the feedback. This action cannot be undone!\n\nAre you sure you want to proceed?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/feedbacks/${feedbackId}?hardDelete=true`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                this.showSuccess('Feedback permanently deleted!');
+                this.loadFeedbacks(); // Reload to refresh the table
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to delete feedback.');
+            }
+        } catch (error) {
+            this.showError('Network error. Please try again.');
+        }
+    }
+
+    async handleRestore(feedbackId) {
+        try {
+            const response = await fetch(`/api/feedbacks/${feedbackId}/restore`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                this.showSuccess('Feedback restored successfully!');
+                this.loadFeedbacks(); // Reload to refresh the table
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to restore feedback.');
+            }
+        } catch (error) {
+            this.showError('Network error. Please try again.');
+        }
     }
 
     renderStars(rating) {
@@ -305,6 +392,5 @@ class AdminFeedbackList {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    new AdminFeedbackList();
-});
+
+const adminFeedbackList = new AdminFeedbackList();
