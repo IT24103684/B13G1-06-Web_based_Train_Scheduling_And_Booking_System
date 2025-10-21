@@ -89,7 +89,7 @@ class UserFeedbackList {
             const response = await fetch(`/api/feedbacks/passenger/${this.passengerId}`);
             if (response.ok) {
                 this.feedbacks = await response.json();
-                // Filter out deleted feedbacks for users (since they're hard deleted, they won't appear)
+
                 this.feedbacks = this.feedbacks.filter(feedback => !feedback.deleteStatus);
                 this.renderFeedbacks();
             } else {
@@ -186,7 +186,7 @@ class UserFeedbackList {
             </div>
         `;
 
-        // Bind events only if owner
+
         if (isOwner) {
             const editBtn = card.querySelector('.edit-feedback-btn');
             const deleteBtn = card.querySelector('.delete-feedback-btn');
@@ -237,25 +237,25 @@ class UserFeedbackList {
     }
 
     bindModalEvents() {
-        // Close modal on backdrop click
+
         this.editModal.addEventListener('click', (e) => {
             if (e.target === this.editModal) {
                 this.closeEditModal();
             }
         });
 
-        // Close on Escape key
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !this.editModal.classList.contains('hidden')) {
                 this.closeEditModal();
             }
         });
 
-        // Handle star rating - both input and display
+
         const starInputs = document.querySelectorAll('.star-input');
         const starDisplay = document.querySelectorAll('.star-display i');
 
-        // Sync radio buttons with visual stars
+
         starInputs.forEach(input => {
             input.addEventListener('change', () => {
                 const rating = parseInt(input.value);
@@ -264,7 +264,7 @@ class UserFeedbackList {
             });
         });
 
-        // Make visual stars clickable to set rating
+
         starDisplay.forEach((star, index) => {
             star.addEventListener('click', () => {
                 const rating = index + 1;
@@ -272,21 +272,21 @@ class UserFeedbackList {
             });
         });
 
-        // Handle form submit
+
         this.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
     }
 
     setStarRating(rating) {
-        // Update the radio buttons
+
         const starInput = document.querySelector(`.star-input[value="${rating}"]`);
         if (starInput) {
             starInput.checked = true;
         }
 
-        // Update the hidden input
+
         document.getElementById('editNumOfStars').value = rating;
 
-        // Update the visual display
+
         this.updateStarRating(rating);
     }
 
@@ -387,9 +387,9 @@ class UserFeedbackList {
 
             if (response.ok) {
                 this.showSuccess('Feedback permanently deleted!');
-                // Remove the card immediately
+
                 card.remove();
-                // Check if no cards left
+
                 if (document.querySelectorAll('[data-feedback-id]').length === 0) {
                     this.container.classList.add('hidden');
                     this.noFeedbacksState.classList.remove('hidden');
