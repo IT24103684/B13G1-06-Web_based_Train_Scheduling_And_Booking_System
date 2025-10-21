@@ -79,7 +79,7 @@ class UserFeedbackList {
 
         setTimeout(() => {
             alert.remove();
-        }, 5000);
+        }, 3000);
     }
 
     async loadFeedbacks() {
@@ -89,6 +89,8 @@ class UserFeedbackList {
             const response = await fetch(`/api/feedbacks/passenger/${this.passengerId}`);
             if (response.ok) {
                 this.feedbacks = await response.json();
+                // Filter out deleted feedbacks for users (since they're hard deleted, they won't appear)
+                this.feedbacks = this.feedbacks.filter(feedback => !feedback.deleteStatus);
                 this.renderFeedbacks();
             } else {
                 this.showError('Failed to load your feedbacks.');
@@ -129,11 +131,7 @@ class UserFeedbackList {
 
         const createdBy = feedback.createdBy || {};
         const isOwner = createdBy.id === this.passengerId;
-
-        // Format date
         const formattedDate = feedback.createdAt ? new Date(feedback.createdAt).toLocaleString() : 'N/A';
-
-        // Generate stars HTML
         const starsHtml = this.renderStars(feedback.numOfStars);
 
         card.innerHTML = `
@@ -142,10 +140,8 @@ class UserFeedbackList {
                     <h3 class="text-lg font-bold text-foreground">${feedback.title || 'Untitled Feedback'}</h3>
                     <p class="text-sm text-muted-foreground">Submitted on ${formattedDate}</p>
                 </div>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            feedback.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-        }">
-                    ${feedback.deleteStatus ? 'Deleted' : 'Active'}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Active
                 </span>
             </div>
 
@@ -167,7 +163,7 @@ class UserFeedbackList {
                     <span class="text-muted-foreground">${createdBy.firstName || ''} ${createdBy.lastName || ''}</span>
                     ${createdBy.email ? `<span class="block text-xs text-muted-foreground">${createdBy.email}</span>` : ''}
                 </div>
-                ${isOwner && !feedback.deleteStatus ? `
+                ${isOwner ? `
                     <div class="flex space-x-3">
                         <button 
                             type="button" 
@@ -180,7 +176,7 @@ class UserFeedbackList {
                         <button 
                             type="button" 
                             data-id="${feedback.id}" 
-                            class="delete-feedback-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
+                            class="delete-feedback-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2"
                         >
                             <i class="fas fa-trash-alt mr-2"></i>
                             Delete
@@ -191,7 +187,7 @@ class UserFeedbackList {
         `;
 
         // Bind events only if owner
-        if (isOwner && !feedback.deleteStatus) {
+        if (isOwner) {
             const editBtn = card.querySelector('.edit-feedback-btn');
             const deleteBtn = card.querySelector('.delete-feedback-btn');
 
@@ -372,7 +368,7 @@ class UserFeedbackList {
     }
 
     async handleDeleteFeedback(feedbackId) {
-        if (!confirm('Are you sure you want to delete this feedback? This action cannot be undone.')) {
+        if (!confirm('⚠️ WARNING: This will PERMANENTLY delete your feedback. This action cannot be undone!\n\nAre you sure you want to proceed?')) {
             return;
         }
 
@@ -385,12 +381,13 @@ class UserFeedbackList {
         deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Deleting...';
 
         try {
-            const response = await fetch(`/api/feedbacks/${feedbackId}`, {
+            const response = await fetch(`/api/feedbacks/${feedbackId}?hardDelete=true`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                this.showSuccess('Feedback deleted successfully!');
+                this.showSuccess('Feedback permanently deleted!');
+                // Remove the card immediately
                 card.remove();
                 // Check if no cards left
                 if (document.querySelectorAll('[data-feedback-id]').length === 0) {
@@ -400,10 +397,11 @@ class UserFeedbackList {
             } else {
                 const error = await response.text();
                 this.showError(error || 'Failed to delete feedback.');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalText;
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
-        } finally {
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = originalText;
         }
