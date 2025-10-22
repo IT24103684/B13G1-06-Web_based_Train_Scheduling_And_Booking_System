@@ -3,6 +3,7 @@ class ScheduleList {
         this.schedules = [];
         this.filteredSchedules = [];
         this.deleteScheduleId = null;
+        this.hardDelete = false; // Track delete type
 
         this.elements = {
             searchInput: document.getElementById('searchInput'),
@@ -16,7 +17,8 @@ class ScheduleList {
             deleteModal: document.getElementById('deleteModal'),
             cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
-            exportPdfBtn: document.getElementById('exportPdfBtn')
+            exportPdfBtn: document.getElementById('exportPdfBtn'),
+            hardDeleteCheckbox: document.getElementById('hardDeleteCheckbox')
         };
 
         this.init();
@@ -34,6 +36,14 @@ class ScheduleList {
         this.elements.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteModal());
         this.elements.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
         this.elements.exportPdfBtn.addEventListener('click', () => this.exportToPDF());
+
+        // Add event listener for hard delete checkbox if it exists
+        if (this.elements.hardDeleteCheckbox) {
+            this.elements.hardDeleteCheckbox.addEventListener('change', (e) => {
+                this.hardDelete = e.target.checked;
+                this.updateDeleteButtonText();
+            });
+        }
 
         document.addEventListener('click', (e) => {
             if (e.target.closest('.delete-btn')) {
@@ -121,12 +131,13 @@ class ScheduleList {
         this.showState('scheduleTable');
 
         this.elements.scheduleTableBody.innerHTML = this.filteredSchedules.map(schedule => `
-            <tr class="border-b transition-colors hover:bg-muted/50">
+            <tr class="border-b transition-colors hover:bg-muted/50 ${schedule.deleteStatus ? 'opacity-60 bg-gray-50' : ''}">
                 <td class="p-4 align-middle">
                     <div>
                         <div class="font-medium text-foreground">
                             <i class="fas fa-arrow-right text-muted-foreground mx-2"></i>
                             ${this.escapeHtml(schedule.fromCity)} → ${this.escapeHtml(schedule.toCity)}
+                            ${schedule.deleteStatus ? '<span class="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Deleted</span>' : ''}
                         </div>
                     </div>
                 </td>
@@ -152,16 +163,18 @@ class ScheduleList {
                 <td class="p-4 align-middle text-right">
                     <div class="flex items-center justify-end space-x-2">
                         <button 
-                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 ${schedule.deleteStatus ? 'opacity-50 cursor-not-allowed' : ''}"
                             data-schedule-id="${schedule.id}"
-                            title="Edit Schedule"
+                            title="${schedule.deleteStatus ? 'Cannot edit deleted schedule' : 'Edit Schedule'}"
+                            ${schedule.deleteStatus ? 'disabled' : ''}
                         >
                             <i class="fas fa-edit text-primary"></i>
                         </button>
                         <button 
-                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 ${schedule.deleteStatus ? 'opacity-50 cursor-not-allowed' : ''}"
                             data-schedule-id="${schedule.id}"
-                            title="Delete Schedule"
+                            title="${schedule.deleteStatus ? 'Schedule already deleted' : 'Delete Schedule'}"
+                            ${schedule.deleteStatus ? 'disabled' : ''}
                         >
                             <i class="fas fa-trash text-destructive"></i>
                         </button>
@@ -182,14 +195,30 @@ class ScheduleList {
 
     showDeleteModal(scheduleId) {
         this.deleteScheduleId = scheduleId;
+        this.hardDelete = false; // Reset to soft delete by default
+
+        // Reset checkbox state if it exists
+        if (this.elements.hardDeleteCheckbox) {
+            this.elements.hardDeleteCheckbox.checked = false;
+        }
+
+        this.updateDeleteButtonText();
         this.elements.deleteModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
 
     hideDeleteModal() {
         this.deleteScheduleId = null;
+        this.hardDelete = false;
         this.elements.deleteModal.classList.add('hidden');
         document.body.style.overflow = 'auto';
+    }
+
+    updateDeleteButtonText() {
+        const buttonText = this.elements.confirmDeleteBtn.querySelector('.button-text');
+        if (buttonText) {
+            buttonText.textContent = this.hardDelete ? 'Delete Permanently' : 'Delete';
+        }
     }
 
     setDeleteLoading(loading) {
@@ -198,11 +227,11 @@ class ScheduleList {
 
         if (loading) {
             this.elements.confirmDeleteBtn.disabled = true;
-            buttonText.textContent = 'Deleting...';
+            buttonText.textContent = this.hardDelete ? 'Deleting Permanently...' : 'Deleting...';
             loadingSpinner.classList.remove('hidden');
         } else {
             this.elements.confirmDeleteBtn.disabled = false;
-            buttonText.textContent = 'Delete';
+            this.updateDeleteButtonText();
             loadingSpinner.classList.add('hidden');
         }
     }
@@ -213,14 +242,22 @@ class ScheduleList {
         this.setDeleteLoading(true);
 
         try {
-            const response = await fetch(/api/schedules/${this.deleteScheduleId}, {
+            // Build URL with hardDelete parameter
+            const url = /api/schedules/${this.deleteScheduleId}${this.hardDelete ? '?hardDelete=true' : ''};
+
+            const response = await fetch(url, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                this.showSuccess('Schedule deleted successfully!');
+                const message = await response.text();
+                this.showSuccess(message || 'Schedule deleted successfully!');
                 this.hideDeleteModal();
-                this.loadSchedules();
+                this.loadSchedules(); // Reload to reflect changes
+            } else if (response.status === 409) {
+                // Handle conflict (e.g., cannot delete due to constraints)
+                const error = await response.text();
+                this.showError(error || 'Cannot delete schedule due to existing constraints');
             } else {
                 const error = await response.text();
                 this.showError(error || 'Failed to delete schedule');
@@ -270,7 +307,7 @@ class ScheduleList {
     exportToPDF() {
         try {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for better table fit
+            const doc = new jsPDF('l', 'mm', 'a4');
 
             doc.setFontSize(20);
             doc.text('Schedule List Report', 14, 22);
@@ -290,11 +327,12 @@ class ScheduleList {
                 schedule.trainType,
                 this.formatDate(schedule.date),
                 this.formatTime(schedule.time),
-                this.formatDateTime(schedule.createdAt)
+                this.formatDateTime(schedule.createdAt),
+                schedule.deleteStatus ? 'Deleted' : 'Active'
         ]);
 
             doc.autoTable({
-                head: [['Route', 'Train Name', 'Type', 'Date', 'Time', 'Created']],
+                head: [['Route', 'Train Name', 'Type', 'Date', 'Time', 'Created', 'Status']],
                 body: tableData,
                 startY: 40,
                 styles: {
@@ -307,12 +345,13 @@ class ScheduleList {
                     fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: 50 },
-                    1: { cellWidth: 40 },
-                    2: { cellWidth: 25 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 25 },
-                    5: { cellWidth: 30 }
+                    0: { cellWidth: 45 },
+                    1: { cellWidth: 35 },
+                    2: { cellWidth: 20 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 20 },
+                    5: { cellWidth: 25 },
+                    6: { cellWidth: 20 }
                 }
             });
 
