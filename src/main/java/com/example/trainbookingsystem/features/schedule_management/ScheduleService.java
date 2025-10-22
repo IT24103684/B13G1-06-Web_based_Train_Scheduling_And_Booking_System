@@ -6,6 +6,7 @@ import com.example.trainbookingsystem.features.payment_management.PaymentModel;
 import com.example.trainbookingsystem.features.payment_management.PaymentRepo;
 import com.example.trainbookingsystem.features.reservation_management.ReservationModel;
 import com.example.trainbookingsystem.features.reservation_management.ReservationRepo;
+import com.example.trainbookingsystem.patterns.observer.ScheduleObservable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,9 @@ public class ScheduleService {
 
     @Autowired
     private PaymentRepo paymentRepo;
+
+    @Autowired
+    private ScheduleObservable scheduleObservable;
 
     public List<ScheduleDTOS.ScheduleResponseDTO> getAllSchedules() {
         return scheduleRepo.findByDeleteStatusOrderByDateAscTimeAsc(false).stream()
@@ -84,6 +88,10 @@ public class ScheduleService {
         }
 
         ScheduleModel savedSchedule = scheduleRepo.save(schedule);
+
+        // NOTIFY OBSERVERS
+        scheduleObservable.notifyScheduleCreate(savedSchedule);
+
         return convertToResponseDTO(savedSchedule);
     }
 
@@ -109,7 +117,6 @@ public class ScheduleService {
                         schedule.setTrainName(updateDTO.getTrainName());
                     }
 
-                    // UPDATE SEAT AVAILABILITY IF PROVIDED
                     if (updateDTO.getAvailableEconomySeats() != null) {
                         schedule.setAvailableEconomySeats(updateDTO.getAvailableEconomySeats());
                     }
@@ -123,7 +130,12 @@ public class ScheduleService {
                         schedule.setAvailableLuxurySeats(updateDTO.getAvailableLuxurySeats());
                     }
 
-                    return convertToResponseDTO(scheduleRepo.save(schedule));
+                    ScheduleModel updatedSchedule = scheduleRepo.save(schedule);
+
+                    // NOTIFY OBSERVERS
+                    scheduleObservable.notifyScheduleUpdate(updatedSchedule);
+
+                    return convertToResponseDTO(updatedSchedule);
                 });
     }
 
@@ -132,14 +144,21 @@ public class ScheduleService {
         Optional<ScheduleModel> schedule = scheduleRepo.findByIdAndDeleteStatus(id, false);
         if (schedule.isPresent()) {
             ScheduleModel scheduleModel = schedule.get();
+            boolean result;
 
             if (hardDelete) {
-                // HARD DELETE - Remove completely from database
-                return hardDeleteSchedule(scheduleModel);
+                result = hardDeleteSchedule(scheduleModel);
             } else {
-                // SOFT DELETE - Keep data with delete status
-                return softDeleteSchedule(scheduleModel);
+                result = softDeleteSchedule(scheduleModel);
             }
+
+            // NOTIFY OBSERVERS
+            if (result) {
+                String deleteType = hardDelete ? "hard" : "soft";
+                scheduleObservable.notifyScheduleDelete(scheduleModel, deleteType);
+            }
+
+            return result;
         }
         return false;
     }
@@ -147,16 +166,13 @@ public class ScheduleService {
     @Transactional
     protected boolean softDeleteSchedule(ScheduleModel scheduleModel) {
         try {
-            // 1. SOFT DELETE ALL RELATED BOOKINGS AND THEIR DEPENDENCIES
             List<BookingModel> relatedBookings = bookingRepo.findByScheduleIdAndDeleteStatusFalse(scheduleModel.getId());
             for (BookingModel booking : relatedBookings) {
                 softDeleteBookingAndRelatedEntities(booking);
             }
 
-            // 2. SOFT DELETE THE SCHEDULE
             scheduleModel.setDeleteStatus(true);
             scheduleRepo.save(scheduleModel);
-
             return true;
         } catch (Exception e) {
             throw new ScheduleException("Failed to soft delete schedule: " + e.getMessage());
@@ -166,15 +182,12 @@ public class ScheduleService {
     @Transactional
     protected boolean hardDeleteSchedule(ScheduleModel scheduleModel) {
         try {
-            // 1. HARD DELETE ALL RELATED BOOKINGS AND THEIR DEPENDENCIES
             List<BookingModel> relatedBookings = bookingRepo.findByScheduleId(scheduleModel.getId());
             for (BookingModel booking : relatedBookings) {
                 hardDeleteBookingAndRelatedEntities(booking);
             }
 
-            // 2. HARD DELETE THE SCHEDULE
             scheduleRepo.delete(scheduleModel);
-
             return true;
         } catch (Exception e) {
             throw new ScheduleException("Failed to hard delete schedule: " + e.getMessage());
@@ -184,7 +197,6 @@ public class ScheduleService {
     @Transactional
     protected void softDeleteBookingAndRelatedEntities(BookingModel booking) {
         try {
-            // 1. SOFT DELETE RELATED PAYMENTS
             Optional<PaymentModel> payment = paymentRepo.findByBookingIdAndDeleteStatus(booking.getId(), false);
             if (payment.isPresent()) {
                 PaymentModel paymentModel = payment.get();
@@ -192,7 +204,6 @@ public class ScheduleService {
                 paymentRepo.save(paymentModel);
             }
 
-            // 2. SOFT DELETE RELATED RESERVATIONS
             Optional<ReservationModel> reservation = reservationRepo.findByBookingIdAndDeleteStatus(booking.getId(), false);
             if (reservation.isPresent()) {
                 ReservationModel reservationModel = reservation.get();
@@ -200,10 +211,8 @@ public class ScheduleService {
                 reservationRepo.save(reservationModel);
             }
 
-            // 3. RESTORE SEATS TO SCHEDULE
             restoreSeatsToSchedule(booking);
 
-            // 4. SOFT DELETE THE BOOKING
             booking.setDeleteStatus(true);
             bookingRepo.save(booking);
         } catch (Exception e) {
@@ -214,18 +223,14 @@ public class ScheduleService {
     @Transactional
     protected void hardDeleteBookingAndRelatedEntities(BookingModel booking) {
         try {
-            // 1. HARD DELETE RELATED PAYMENTS
             Optional<PaymentModel> payment = paymentRepo.findByBookingId(booking.getId());
             payment.ifPresent(paymentRepo::delete);
 
-            // 2. HARD DELETE RELATED RESERVATIONS
             Optional<ReservationModel> reservation = reservationRepo.findByBookingId(booking.getId());
             reservation.ifPresent(reservationRepo::delete);
 
-            // 3. RESTORE SEATS TO SCHEDULE
             restoreSeatsToSchedule(booking);
 
-            // 4. HARD DELETE THE BOOKING
             bookingRepo.delete(booking);
         } catch (Exception e) {
             throw new ScheduleException("Failed to hard delete related booking: " + e.getMessage());
@@ -268,7 +273,6 @@ public class ScheduleService {
         responseDTO.setTrainType(schedule.getTrainType());
         responseDTO.setTrainName(schedule.getTrainName());
 
-        // ADD SEAT AVAILABILITY TO RESPONSE
         responseDTO.setAvailableEconomySeats(schedule.getAvailableEconomySeats());
         responseDTO.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats());
         responseDTO.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats());
@@ -280,7 +284,6 @@ public class ScheduleService {
         return responseDTO;
     }
 
-    // Custom Exception Classes
     public static class ScheduleException extends RuntimeException {
         public ScheduleException(String message) {
             super(message);
