@@ -204,7 +204,8 @@ public class PaymentDTOS {
         private Long id;
         private Integer numberOfAdults;      // ADD THIS
         private Integer numberOfChildren;    // ADD THIS
-        private String classType;            // ADD THIS
+        private String classType;
+        private Integer seatCount;// ADD THIS
         private String additionalNotes;
         private PassengerInfo passenger;
         private ScheduleInfo schedule;
@@ -266,6 +267,14 @@ public class PaymentDTOS {
 
         public void setSchedule(ScheduleInfo schedule) {
             this.schedule = schedule;
+        }
+
+        public Integer getSeatCount() {
+            return seatCount;
+        }
+
+        public void setSeatCount(Integer seatCount) {
+            this.seatCount = seatCount;
         }
     }
 
