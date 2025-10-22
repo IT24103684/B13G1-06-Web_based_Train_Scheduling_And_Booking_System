@@ -53,9 +53,6 @@ public class BookingService {
 
         BookingModel savedBooking = bookingRepo.save(booking);
 
-        // Update schedule availability
-        updateScheduleAvailability(schedule.get(), createDTO.getClassType(), createDTO.getSeatCount());
-
         return convertToResponseDTO(savedBooking);
     }
 
