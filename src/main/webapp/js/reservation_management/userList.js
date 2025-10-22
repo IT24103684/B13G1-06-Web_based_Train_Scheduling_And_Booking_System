@@ -15,12 +15,19 @@ class UserReservationList {
     }
 
     checkAuthentication() {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
+        // Use sessionStorage to match your booking system
+        const session = sessionStorage.getItem('passengerSession');
+        if (!session) {
             window.location.href = '/login';
             return;
         }
-        this.passengerId = parseInt(userId);
+
+        try {
+            const sessionData = JSON.parse(session);
+            this.passengerId = sessionData.id;
+        } catch (error) {
+            window.location.href = '/login';
+        }
     }
 
     showLoading(show) {
@@ -108,6 +115,21 @@ class UserReservationList {
         });
     }
 
+    getClassBadge(classType) {
+        const classStyles = {
+            'ECONOMY': 'class-economy',
+            'BUSINESS': 'class-business',
+            'FIRST_CLASS': 'class-first_class',
+            'LUXURY': 'class-luxury'
+        };
+
+        const className = classType || 'ECONOMY';
+        const styleClass = classStyles[className] || 'class-economy';
+        const displayName = className.toLowerCase().replace('_', ' ');
+
+        return `<span class="class-badge ${styleClass}">${displayName}</span>`;
+    }
+
     createReservationCard(reservation) {
         const card = document.createElement('div');
         card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-6 border border-gray-200';
@@ -132,122 +154,114 @@ class UserReservationList {
 
         const totalBill = reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0';
 
-        // Determine if payment button should be shown
-        const showPaymentButton = reservation.status === 'PENDING';
-        const canUserUpdate = reservation.status === 'PENDING'; // ONLY PENDING can be updated by users
+        // Determine if user can update or delete
+        const canUserUpdate = reservation.status === 'PENDING';
         const canDelete = reservation.status !== 'COMPLETED';
 
         card.innerHTML = `
-    <div class="flex justify-between items-start mb-4">
-        <div>
-            <h3 class="text-lg font-bold text-foreground">Reservation #${reservation.id}</h3>
-            <p class="text-sm text-muted-foreground">Booked on ${reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A'}</p>
-        </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${this.getStatusClass(reservation.status)}">
-            ${this.getStatusDisplayText(reservation.status)}
-        </span>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div class="space-y-2">
-            <h4 class="font-medium text-foreground">Passenger</h4>
-            <p class="text-sm">${passenger.firstName || ''} ${passenger.lastName || ''}</p>
-            <p class="text-xs text-muted-foreground">${passenger.email || ''}</p>
-        </div>
-        <div class="space-y-2">
-            <h4 class="font-medium text-foreground">Train Journey</h4>
-            <p class="text-sm font-medium">${schedule.trainName || 'N/A'} (${schedule.trainType || 'N/A'})</p>
-            <p class="text-sm">
-                <span class="font-medium">${schedule.fromCity || 'N/A'}</span> → <span class="font-medium">${schedule.toCity || 'N/A'}</span>
-            </p>
-            <p class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</p>
-        </div>
-        <div class="space-y-2">
-            <h4 class="font-medium text-foreground">Seats</h4>
-            <p class="text-sm">Adults: ${reservation.numOfAdultSeats || 0}</p>
-            <p class="text-sm">Children: ${reservation.numOfChildrenSeats || 0}</p>
-            <p class="text-sm">Class: ${reservation.trainBoxClass || 'N/A'}</p>
-        </div>
-        <div class="space-y-2">
-            <h4 class="font-medium text-foreground">Payment</h4>
-            <p class="text-sm font-bold">Total: Rs. ${totalBill}</p>
-            <p class="text-xs text-muted-foreground">Booking ID: #${booking.id || 'N/A'}</p>
-        </div>
-    </div>
-
-    <!-- REMOVE THE DUPLICATE SECTION ABOVE THIS AND KEEP ONLY THIS SECTION -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
-        <div class="flex-1">
-            ${canUserUpdate ? `
-            <div class="w-full">
-                <label for="status-${reservation.id}" class="block text-sm font-medium text-foreground mb-1">Update Status</label>
-                <select
-                    ${!canUserUpdate ? 'disabled' : ''}
-                    id="status-${reservation.id}"
-                    class="status-select block w-full sm:w-48 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-            !canUserUpdate ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''
-        }"
-                >
-                    <option value="${reservation.status}" selected>
-                        ${this.getStatusDisplayText(reservation.status)} (Current)
-                    </option>
-                    ${reservation.status === 'PENDING' ? '<option value="CANCELLED">Cancel Reservation</option>' : ''}
-                </select>
-            </div>
-            ` : `
-            <div class="w-full">
-                <label class="block text-sm font-medium text-muted-foreground mb-1">Status</label>
-                <div class="text-sm text-foreground font-medium">
-                    ${this.getStatusDisplayText(reservation.status)}
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-foreground">Reservation #${reservation.id}</h3>
+                    <p class="text-sm text-muted-foreground">Booked on ${reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A'}</p>
                 </div>
-                <div class="text-xs text-muted-foreground">
-                    ${reservation.status === 'CANCELLED' ? 'Cancelled' :
+                <div class="text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${this.getStatusClass(reservation.status)}">
+                        ${this.getStatusDisplayText(reservation.status)}
+                    </span>
+                    <div class="mt-1">
+                        ${this.getClassBadge(reservation.classType)}
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Passenger</h4>
+                    <p class="text-sm">${passenger.firstName || ''} ${passenger.lastName || ''}</p>
+                    <p class="text-xs text-muted-foreground">${passenger.email || ''}</p>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Train Journey</h4>
+                    <p class="text-sm font-medium">${schedule.trainName || 'N/A'} (${schedule.trainType || 'N/A'})</p>
+                    <p class="text-sm">
+                        <span class="font-medium">${schedule.fromCity || 'N/A'}</span> → <span class="font-medium">${schedule.toCity || 'N/A'}</span>
+                    </p>
+                    <p class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</p>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Booking Details</h4>
+                    <p class="text-sm">
+                        ${reservation.numOfAdultSeats || 0} adult seat${reservation.numOfAdultSeats !== 1 ? 's' : ''}, 
+                        ${reservation.numOfChildrenSeats || 0} child seat${reservation.numOfChildrenSeats !== 1 ? 's' : ''}
+                    </p>
+                    <p class="text-sm">Total: ${(reservation.numOfAdultSeats || 0) + (reservation.numOfChildrenSeats || 0)} seats</p>
+                    <p class="text-sm italic">${booking.additionalNotes || 'No special notes'}</p>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Payment</h4>
+                    <p class="text-sm font-bold">Total: Rs. ${totalBill}</p>
+                    <p class="text-xs text-muted-foreground">Booking ID: #${booking.id || 'N/A'}</p>
+                    <p class="text-xs text-muted-foreground">Last updated: ${reservation.updatedAt ? new Date(reservation.updatedAt).toLocaleString() : 'Never'}</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
+                <div class="flex-1">
+                    ${canUserUpdate ? `
+                    <div class="w-full">
+                        <label for="status-${reservation.id}" class="block text-sm font-medium text-foreground mb-1">Update Status</label>
+                        <select
+                            id="status-${reservation.id}"
+                            class="status-select block w-full sm:w-48 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        >
+                            <option value="${reservation.status}" selected>
+                                ${this.getStatusDisplayText(reservation.status)} (Current)
+                            </option>
+                            ${reservation.status === 'PENDING' ? '<option value="CANCELLED">Cancel Reservation</option>' : ''}
+                        </select>
+                    </div>
+                    ` : `
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-muted-foreground mb-1">Status</label>
+                        <div class="text-sm text-foreground font-medium">
+                            ${this.getStatusDisplayText(reservation.status)}
+                        </div>
+                        <div class="text-xs text-muted-foreground">
+                            ${reservation.status === 'CANCELLED' ? 'Cancelled' :
             reservation.status === 'COMPLETED' ? 'Completed' : 'Status cannot be changed'}
+                        </div>
+                    </div>
+                    `}
+                </div>
+                
+                <div class="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                    ${canUserUpdate ? `
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
+                    >
+                        <i class="fas fa-save mr-2"></i>
+                        Update Status
+                    </button>
+                    ` : ''}
+
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        ${!canDelete ? 'disabled' : ''}
+                    >
+                        <i class="fas fa-trash-alt mr-2"></i>
+                        Delete
+                    </button>
                 </div>
             </div>
-            `}
-        </div>
-        
-        <div class="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-            ${canUserUpdate ? `
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
-            >
-                <i class="fas fa-save mr-2"></i>
-                Update Status
-            </button>
-            ` : ''}
-
-            ${showPaymentButton ? `
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="make-payment-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
-            >
-                <i class="fas fa-credit-card mr-2"></i>
-                Pay Now
-            </button>
-            ` : ''}
-
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                ${!canDelete ? 'disabled' : ''}
-            >
-                <i class="fas fa-trash-alt mr-2"></i>
-                Delete
-            </button>
-        </div>
-    </div>
-    `;
+        `;
 
         // Add event listeners
         const updateBtn = card.querySelector('.update-status-btn');
         const deleteBtn = card.querySelector('.delete-reservation-btn');
-        const paymentBtn = card.querySelector('.make-payment-btn');
         const statusSelect = card.querySelector('.status-select');
 
         if (updateBtn) {
@@ -256,10 +270,6 @@ class UserReservationList {
 
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => this.handleDeleteReservation(reservation.id));
-        }
-
-        if (paymentBtn) {
-            paymentBtn.addEventListener('click', () => this.handleMakePayment(reservation.id));
         }
 
         return card;
@@ -347,11 +357,6 @@ class UserReservationList {
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = originalText;
         }
-    }
-
-    handleMakePayment(reservationId) {
-        // Redirect to payment page
-        window.location.href = '/create-payment?reservationId=' + reservationId;
     }
 }
 

@@ -4,6 +4,8 @@ import com.example.trainbookingsystem.features.booking_management.BookingModel;
 import com.example.trainbookingsystem.features.booking_management.BookingRepo;
 import com.example.trainbookingsystem.features.feedback_management.FeedbackRepo;
 import com.example.trainbookingsystem.features.reservation_management.ReservationRepo;
+import com.example.trainbookingsystem.patterns.deletion.strategy.DeleteContext;
+import com.example.trainbookingsystem.patterns.deletion.strategy.DeleteStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,9 @@ public class PassengerService {
 
     @Autowired
     private FeedbackRepo feedbackRepo;
+
+    @Autowired
+    private DeleteContext deleteContext;
 
     public List<PassengerDTOS.PassengerResponseDTO> getAllPassengers() {
         return passengerRepo.findByDeleteStatus(false).stream()
@@ -86,23 +91,12 @@ public class PassengerService {
             if (passengerOpt.isPresent()) {
                 PassengerModel passenger = passengerOpt.get();
 
-                if (keepData) {
-                    passenger.setDeleteStatus(true);
-                    passengerRepo.save(passenger);
-                } else {
+                // Get the appropriate strategy
+                DeleteStrategy strategy = deleteContext.getStrategy(keepData);
 
-                    List<BookingModel> bookings = bookingRepo.findByPassenger(passenger);
-                    for (BookingModel booking : bookings) {
-                        reservationRepo.deleteByBooking(booking);
-                    }
-
-                    bookingRepo.deleteAll(bookings);
-
-                    feedbackRepo.deleteByCreatedBy(passenger);
-
-                    passengerRepo.delete(passenger);
-                }
-                return true;
+                // Execute the deletion strategy
+                return strategy.delete(passenger, passengerRepo, bookingRepo,
+                        reservationRepo, feedbackRepo);
             }
             return false;
         } catch (Exception e) {
