@@ -2,6 +2,8 @@ package com.example.trainbookingsystem.features.reservation_management;
 
 import com.example.trainbookingsystem.features.booking_management.BookingModel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -25,4 +27,7 @@ public interface ReservationRepo extends JpaRepository<ReservationModel, Long> {
     boolean existsByBookingIdAndDeleteStatus(Long bookingId, Boolean deleteStatus);
 
     void deleteByBooking(BookingModel booking);
+
+    @Query("SELECT r FROM ReservationModel r WHERE r.booking.id = :bookingId")
+    Optional<ReservationModel> findByBookingId(@Param("bookingId") Long bookingId);
 }
