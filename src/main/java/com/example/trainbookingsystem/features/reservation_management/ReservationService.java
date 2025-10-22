@@ -4,6 +4,7 @@ import com.example.trainbookingsystem.features.booking_management.BookingModel;
 import com.example.trainbookingsystem.features.booking_management.BookingRepo;
 import com.example.trainbookingsystem.features.schedule_management.ScheduleModel;
 import com.example.trainbookingsystem.features.schedule_management.ScheduleRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +53,46 @@ public class ReservationService {
     private boolean canDeleteReservation(String status) {
         // Only allow deletion of non-PAID reservations
         return !"PAID".equals(status);
+    }
+
+    @Transactional
+    public Optional<ReservationDTOS.ReservationResponseDTO> cancelReservation(Long id) {
+        return reservationRepo.findByIdAndDeleteStatus(id, false)
+                .map(reservation -> {
+                    // Validate if reservation can be cancelled
+                    if (!"PENDING".equals(reservation.getStatus())) {
+                        throw new RuntimeException("Only PENDING reservations can be cancelled");
+                    }
+
+                    // RESTORE SEAT AVAILABILITY
+                    BookingModel booking = reservation.getBooking();
+                    Integer totalSeats = reservation.getTotalSeats();
+                    restoreSeatsToSchedule(booking.getSchedule(), booking.getClassType(), totalSeats);
+
+                    // Update status to CANCELLED
+                    reservation.setStatus("CANCELLED");
+                    ReservationModel updatedReservation = reservationRepo.save(reservation);
+
+                    return convertToResponseDTO(updatedReservation);
+                });
+    }
+
+    private void restoreSeatsToSchedule(ScheduleModel schedule, String classType, Integer seatCount) {
+        switch (classType.toUpperCase()) {
+            case "ECONOMY":
+                schedule.setAvailableEconomySeats(schedule.getAvailableEconomySeats() + seatCount);
+                break;
+            case "BUSINESS":
+                schedule.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats() + seatCount);
+                break;
+            case "FIRST_CLASS":
+                schedule.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats() + seatCount);
+                break;
+            case "LUXURY":
+                schedule.setAvailableLuxurySeats(schedule.getAvailableLuxurySeats() + seatCount);
+                break;
+        }
+        scheduleRepo.save(schedule);
     }
 
     public List<ReservationDTOS.ReservationResponseDTO> getAllReservations() {
@@ -254,7 +295,9 @@ public class ReservationService {
             // RESTORE SEAT AVAILABILITY WHEN DELETING RESERVATION
             BookingModel booking = reservationModel.getBooking();
             Integer totalSeats = reservationModel.getTotalSeats();
-            updateScheduleAvailability(booking.getSchedule(), booking.getClassType(), -totalSeats);
+
+            // Use the new restore method to add seats back
+            restoreSeatsToSchedule(booking.getSchedule(), booking.getClassType(), totalSeats);
 
             reservationModel.setDeleteStatus(true);
             reservationRepo.save(reservationModel);
@@ -262,6 +305,7 @@ public class ReservationService {
         }
         return false;
     }
+
 
     // UPDATE convertToResponseDTO to include class type
     private ReservationDTOS.ReservationResponseDTO convertToResponseDTO(ReservationModel reservation) {
