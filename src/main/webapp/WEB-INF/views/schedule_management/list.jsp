@@ -88,6 +88,16 @@
         </div>
 
         <div class="p-6">
+            <!-- Notifications Section -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="text-sm font-medium text-blue-800 mb-2">
+                    <i class="fas fa-bell mr-2"></i>Recent Activity
+                </h3>
+                <div id="notifications" class="text-sm text-blue-700 space-y-1 max-h-32 overflow-y-auto">
+                    <div class="text-center text-blue-600">Loading notifications...</div>
+                </div>
+            </div>
+
             <div class="mb-6 flex flex-col sm:flex-row gap-4">
                 <div class="relative flex-1 max-w-md">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
