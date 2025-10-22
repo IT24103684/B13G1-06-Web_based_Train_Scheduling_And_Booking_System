@@ -33,9 +33,6 @@ class AdminReservationList {
     }
 
     bindEvents() {
-        // Update status filter options first
-        this.updateStatusFilterOptions();
-
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
         this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
@@ -87,31 +84,6 @@ class AdminReservationList {
 
         // Handle edit form submission
         this.elements.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
-
-        // Recalculate total bill when values change
-        const adultSeats = document.getElementById('editNumOfAdultSeats');
-        const childSeats = document.getElementById('editNumOfChildrenSeats');
-        const trainBoxClass = document.getElementById('editTrainBoxClass');
-
-        if (adultSeats) {
-            adultSeats.addEventListener('change', () => this.calculateTotalBill());
-        }
-        if (childSeats) {
-            childSeats.addEventListener('change', () => this.calculateTotalBill());
-        }
-        if (trainBoxClass) {
-            trainBoxClass.addEventListener('change', () => this.calculateTotalBill());
-        }
-    }
-
-    // NEW METHOD: Update status filter options
-    updateStatusFilterOptions() {
-        this.elements.statusFilter.innerHTML = `
-        <option value="">All Status</option>
-        <option value="PENDING">Pending</option>
-        <option value="CANCELLED">Cancelled</option>
-        <option value="COMPLETED">Completed</option>
-    `;
     }
 
     showState(stateName) {
@@ -173,7 +145,7 @@ class AdminReservationList {
                 schedule.trainName?.toLowerCase().includes(searchTerm) ||
                 schedule.fromCity?.toLowerCase().includes(searchTerm) ||
                 schedule.toCity?.toLowerCase().includes(searchTerm) ||
-                reservation.trainBoxClass?.toLowerCase().includes(searchTerm);
+                reservation.classType?.toLowerCase().includes(searchTerm);
 
             const matchesStatus = !selectedStatus || reservation.status === selectedStatus;
 
@@ -240,7 +212,7 @@ class AdminReservationList {
                     <td class="p-4 align-middle">
                         <div class="text-sm text-foreground">Adults: ${reservation.numOfAdultSeats || 0}</div>
                         <div class="text-sm text-foreground">Children: ${reservation.numOfChildrenSeats || 0}</div>
-                        <div class="text-sm text-muted-foreground">${reservation.trainBoxClass || 'N/A'}</div>
+                        <div class="text-sm text-muted-foreground">${reservation.classType || 'N/A'}</div>
                     </td>
                     <td class="p-4 align-middle">
                         <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
@@ -249,46 +221,44 @@ class AdminReservationList {
                         <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                 this.getStatusClass(reservation.status)
             }">
-                        ${reservation.status || 'N/A'}
-                    </span>
-                </td>
-                <td class="p-4 align-middle text-right">
-                    <div class="flex items-center justify-end space-x-2">
-                        <button 
-                            class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                            data-reservation-id="${reservation.id}"
-                            title="View Reservation"
-                        >
-                            <i class="fas fa-eye text-primary"></i>
-                        </button>
-                        <button 
-                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                            data-reservation-id="${reservation.id}"
-                            title="Edit Reservation"
-                        >
-                            <i class="fas fa-edit text-primary"></i>
-                        </button>
-                        <button 
-                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                            data-reservation-id="${reservation.id}"
-                            title="Delete Reservation"
-                        >
-                            <i class="fas fa-trash text-destructive"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
+                            ${reservation.status || 'N/A'}
+                        </span>
+                    </td>
+                    <td class="p-4 align-middle text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            <button 
+                                class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                                data-reservation-id="${reservation.id}"
+                                title="View Reservation"
+                            >
+                                <i class="fas fa-eye text-primary"></i>
+                            </button>
+                            <button 
+                                class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                                data-reservation-id="${reservation.id}"
+                                title="Edit Reservation"
+                            >
+                                <i class="fas fa-edit text-primary"></i>
+                            </button>
+                            <button 
+                                class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                                data-reservation-id="${reservation.id}"
+                                title="Delete Reservation"
+                            >
+                                <i class="fas fa-trash text-destructive"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }).join('');
     }
 
     getStatusClass(status) {
         const classes = {
             'PENDING': 'bg-yellow-100 text-yellow-800',
-            'CONFIRMED': 'bg-blue-100 text-blue-800',
             'CANCELLED': 'bg-red-100 text-red-800',
-            'PAID': 'bg-green-100 text-green-800',
-            'COMPLETED': 'bg-purple-100 text-purple-800'
+            'COMPLETED': 'bg-green-100 text-green-800'
         };
         return classes[status] || 'bg-gray-100 text-gray-800';
     }
@@ -332,8 +302,7 @@ class AdminReservationList {
         document.getElementById('viewBookingNotes').textContent = booking.additionalNotes || 'None provided';
         document.getElementById('viewAdultSeats').textContent = reservation.numOfAdultSeats || 0;
         document.getElementById('viewChildSeats').textContent = reservation.numOfChildrenSeats || 0;
-        // FIX: Use classType instead of trainBoxClass
-        document.getElementById('viewTrainBoxClass').textContent = reservation.classType || 'N/A';
+        document.getElementById('viewClassType').textContent = reservation.classType || 'N/A';
         document.getElementById('viewTotalBill').textContent = `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`;
         document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${this.getStatusClass(reservation.status)}`;
         document.getElementById('viewStatus').textContent = reservation.status || 'N/A';
@@ -350,37 +319,79 @@ class AdminReservationList {
         document.body.style.overflow = 'auto';
     }
 
+    // ADD THIS METHOD: Cancel reservation
+    async cancelReservation(reservationId) {
+        if (!confirm('Are you sure you want to cancel this reservation? This will restore the seats to availability.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/reservations/${reservationId}/cancel`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showSuccess('Reservation cancelled successfully! Seats have been restored.');
+                this.hideEditModal();
+                this.loadReservations();
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to cancel reservation');
+            }
+        } catch (error) {
+            this.showError('Network error. Please try again.');
+        }
+    }
+
+    // UPDATE showEditModal to include all editable fields
     showEditModal(reservationId) {
         const reservation = this.reservations.find(r => r.id == reservationId);
         if (!reservation) return;
 
         this.currentReservationId = reservationId;
 
-        // Populate form fields
+        const booking = reservation.booking || {};
+
+        // Populate ALL form fields
         document.getElementById('editNumOfAdultSeats').value = reservation.numOfAdultSeats || 1;
         document.getElementById('editNumOfChildrenSeats').value = reservation.numOfChildrenSeats || 0;
         document.getElementById('editTotalBill').value = reservation.totalBill || 0;
+        document.getElementById('editClassTypeDisplay').textContent = reservation.classType ? reservation.classType.toLowerCase().replace('_', ' ') : 'economy';
 
-        // Update status dropdown with only allowed options
+        // Update status dropdown with all allowed options
         const statusSelect = document.getElementById('editStatus');
         statusSelect.innerHTML = `
-        <option value="PENDING">Pending</option>
-        <option value="CANCELLED">Cancelled</option>
-        <option value="COMPLETED">Completed</option>
-    `;
-        statusSelect.value = reservation.status || 'PENDING';
+            <option value="PENDING" ${reservation.status === 'PENDING' ? 'selected' : ''}>Pending</option>
+            <option value="CANCELLED" ${reservation.status === 'CANCELLED' ? 'selected' : ''}>Cancelled</option>
+            <option value="COMPLETED" ${reservation.status === 'COMPLETED' ? 'selected' : ''}>Completed</option>
+        `;
 
-        // Update status dropdown with only allowed options
-        const statusSelect = document.getElementById('editStatus');
-        statusSelect.innerHTML = `
-        <option value="PENDING">Pending</option>
-        <option value="CANCELLED">Cancelled</option>
-        <option value="COMPLETED">Completed</option>
-    `;
-        statusSelect.value = reservation.status || 'PENDING';
+        // ADD CANCEL BUTTON TO EDIT MODAL
+        const cancelButtonHtml = `
+            <button 
+                type="button" 
+                id="cancelReservationBtn"
+                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2"
+            >
+                <i class="fas fa-times-circle mr-2"></i>
+                Cancel Reservation
+            </button>
+        `;
 
-        // Calculate total bill (if needed)
-        this.calculateTotalBill();
+        // Add cancel button to modal actions if reservation is PENDING
+        const modalActions = document.querySelector('.flex.justify-end.space-x-4.pt-4');
+        if (modalActions && reservation.status === 'PENDING') {
+            const existingCancelBtn = document.getElementById('cancelReservationBtn');
+            if (!existingCancelBtn) {
+                modalActions.insertAdjacentHTML('beforeend', cancelButtonHtml);
+
+                // Add event listener for cancel button
+                document.getElementById('cancelReservationBtn').addEventListener('click', () => {
+                    this.cancelReservation(reservationId);
+                });
+            }
+        }
 
         this.elements.editModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
@@ -389,6 +400,13 @@ class AdminReservationList {
     hideEditModal() {
         this.currentReservationId = null;
         this.elements.editForm.reset();
+
+        // Remove cancel button if it exists
+        const cancelBtn = document.getElementById('cancelReservationBtn');
+        if (cancelBtn) {
+            cancelBtn.remove();
+        }
+
         this.elements.editModal.classList.add('hidden');
         document.body.style.overflow = 'auto';
     }
@@ -420,28 +438,7 @@ class AdminReservationList {
         }
     }
 
-    calculateTotalBill() {
-        const adultSeats = parseInt(document.getElementById('editNumOfAdultSeats').value) || 0;
-        const childSeats = parseInt(document.getElementById('editNumOfChildrenSeats').value) || 0;
-        const trainBoxClass = document.getElementById('editTrainBoxClass').value;
-
-        // Base prices per seat type
-        const adultPriceMap = {
-            'Economy': 500,
-            'Business': 1200,
-            'First Class': 2000,
-            'Luxury': 3000
-        };
-
-        const childDiscount = 0.5; // 50% discount for children
-
-        const adultPrice = adultPriceMap[trainBoxClass] || 500;
-        const childPrice = adultPrice * childDiscount;
-
-        const total = (adultSeats * adultPrice) + (childSeats * childPrice);
-        document.getElementById('editTotalBill').value = total.toFixed(2);
-    }
-
+    // UPDATE handleEditSubmit to handle all fields
     async handleEditSubmit(e) {
         e.preventDefault();
 
@@ -454,7 +451,6 @@ class AdminReservationList {
         const updateData = {
             numOfAdultSeats: parseInt(formData.get('numOfAdultSeats')) || 0,
             numOfChildrenSeats: parseInt(formData.get('numOfChildrenSeats')) || 0,
-            trainBoxClass: formData.get('trainBoxClass'),
             totalBill: parseFloat(formData.get('totalBill')) || 0,
             status: formData.get('status')
         };
@@ -467,6 +463,11 @@ class AdminReservationList {
 
         if (updateData.numOfChildrenSeats < 0) {
             this.showError('Number of children seats cannot be negative.');
+            return;
+        }
+
+        if (updateData.totalBill <= 0) {
+            this.showError('Total bill must be greater than 0.');
             return;
         }
 
