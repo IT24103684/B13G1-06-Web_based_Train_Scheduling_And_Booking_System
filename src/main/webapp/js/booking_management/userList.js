@@ -25,8 +25,12 @@ class UserBookingList {
             return;
         }
 
-        const sessionData = JSON.parse(session);
-        this.passengerId = sessionData.id;
+        try {
+            const sessionData = JSON.parse(session);
+            this.passengerId = sessionData.id;
+        } catch (error) {
+            window.location.href = '/login';
+        }
     }
 
     showLoading(show) {
@@ -325,9 +329,64 @@ class UserBookingList {
     }
 
     async handleDeleteBooking(bookingId) {
-        if (!confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+        const booking = this.bookings.find(b => b.id == bookingId);
+        if (!booking) return;
+
+        let confirmMessage = 'Are you sure you want to delete this booking? This action cannot be undone.';
+
+        // Add information about seat restoration
+        confirmMessage += '\n\n💺 Seats will be immediately released for other customers.';
+
+        // Use enhanced confirmation for better UX
+        if (this.showCustomDeleteConfirmation) {
+            this.showCustomDeleteConfirmation(bookingId, confirmMessage);
             return;
         }
+
+        if (!confirm(confirmMessage)) return;
+
+        await this.proceedWithBookingDeletion(bookingId);
+    }
+
+    // Enhanced delete confirmation with custom modal
+    showCustomDeleteConfirmation(bookingId, message) {
+        const modalHtml = `
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 mx-4">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-foreground">Delete Booking</h3>
+                            <p class="text-sm text-muted-foreground mt-1 whitespace-pre-line">${message}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button 
+                            onclick="this.closest('.fixed').remove()" 
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="userBookingList.proceedWithBookingDeletion(${bookingId})" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                            Delete Booking
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    // Extract deletion logic to separate method
+    async proceedWithBookingDeletion(bookingId) {
+        // Remove any custom modals
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.remove());
 
         const card = document.querySelector(`[data-booking-id="${bookingId}"]`);
         if (!card) return;
@@ -343,9 +402,10 @@ class UserBookingList {
             });
 
             if (response.ok) {
-                this.showSuccess('Booking deleted successfully!');
+                this.showSuccess('Booking deleted successfully! Seats have been released.');
                 card.remove();
-                // Check if no cards left
+
+                // Check if no bookings left
                 if (document.querySelectorAll('[data-booking-id]').length === 0) {
                     this.container.classList.add('hidden');
                     this.noBookingsState.classList.remove('hidden');
@@ -361,8 +421,24 @@ class UserBookingList {
             deleteBtn.innerHTML = originalText;
         }
     }
+
+    // Utility method to check if booking has active reservation
+    async checkBookingHasReservation(bookingId) {
+        try {
+            const response = await fetch(`/api/reservations/booking/${bookingId}`);
+            if (response.ok) {
+                const reservation = await response.json();
+                return !!reservation;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error checking reservation:', error);
+            return false;
+        }
+    }
 }
 
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new UserBookingList();
+    window.userBookingList = new UserBookingList();
 });

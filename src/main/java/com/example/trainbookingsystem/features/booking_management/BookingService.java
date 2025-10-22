@@ -2,12 +2,18 @@ package com.example.trainbookingsystem.features.booking_management;
 
 import com.example.trainbookingsystem.features.passenger_management.PassengerModel;
 import com.example.trainbookingsystem.features.passenger_management.PassengerRepo;
+import com.example.trainbookingsystem.features.payment_management.PaymentModel;
+import com.example.trainbookingsystem.features.payment_management.PaymentRepo;
+import com.example.trainbookingsystem.features.reservation_management.ReservationModel;
+import com.example.trainbookingsystem.features.reservation_management.ReservationRepo;
 import com.example.trainbookingsystem.features.schedule_management.ScheduleModel;
 import com.example.trainbookingsystem.features.schedule_management.ScheduleRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,6 +30,12 @@ public class BookingService {
 
     @Autowired
     private ScheduleRepo scheduleRepo;
+
+    @Autowired
+    private ReservationRepo reservationRepo;
+
+    @Autowired
+    private PaymentRepo paymentRepo;
 
     @Transactional
     public BookingDTOS.BookingResponseDTO createBooking(BookingDTOS.CreateBookingDTO createDTO) {
@@ -53,10 +65,21 @@ public class BookingService {
 
         BookingModel savedBooking = bookingRepo.save(booking);
 
-        // Update schedule availability
         updateScheduleAvailability(schedule.get(), createDTO.getClassType(), createDTO.getSeatCount());
 
         return convertToResponseDTO(savedBooking);
+    }
+
+    @Scheduled(fixedRate = 3600000)
+    public void cleanupExpiredBookings() {
+        LocalDateTime cutoffTime = LocalDateTime.now().minusHours(24);
+        List<BookingModel> expiredBookings = bookingRepo.findExpiredBookingsWithoutReservations(cutoffTime);
+
+        for (BookingModel booking : expiredBookings) {
+            restoreSeatsToSchedule(booking);
+            booking.setDeleteStatus(true);
+            bookingRepo.save(booking);
+        }
     }
 
     private void validateSeatAvailability(ScheduleModel schedule, String classType, Integer seatCount) {
@@ -158,35 +181,67 @@ public class BookingService {
     public boolean deleteBooking(Long id) {
         Optional<BookingModel> booking = bookingRepo.findByIdAndDeleteStatus(id, false);
         if (booking.isPresent()) {
-            // Soft delete - set deleteStatus to true
-            booking.get().setDeleteStatus(true);
-            bookingRepo.save(booking.get());
+            BookingModel bookingModel = booking.get();
 
-            // Restore seats to schedule
-            restoreSeatsToSchedule(booking.get());
+            // 1. FIND AND DELETE PAYMENT (if exists)
+            Optional<PaymentModel> payment = paymentRepo.findByBookingIdAndDeleteStatus(bookingModel.getId(), false);
+            if (payment.isPresent()) {
+                PaymentModel paymentModel = payment.get();
+                paymentModel.setDeleteStatus(true);
+                paymentRepo.save(paymentModel);
+            }
+
+            // 2. FIND AND DELETE RESERVATION (if exists)
+            Optional<ReservationModel> reservation = reservationRepo.findByBookingIdAndDeleteStatus(bookingModel.getId(), false);
+            if (reservation.isPresent()) {
+                ReservationModel reservationModel = reservation.get();
+
+                // RESTORE SEATS from reservation
+                restoreSeatsFromReservation(reservationModel);
+
+                // Delete reservation
+                reservationModel.setDeleteStatus(true);
+                reservationRepo.save(reservationModel);
+            } else {
+                // 3. NO RESERVATION - Restore seats from booking directly
+                restoreSeatsToSchedule(bookingModel);
+            }
+
+            // 4. FINALLY DELETE THE BOOKING
+            bookingModel.setDeleteStatus(true);
+            bookingRepo.save(bookingModel);
             return true;
         }
         return false;
     }
 
-    private void restoreSeatsToSchedule(BookingModel booking) {
-        ScheduleModel schedule = booking.getSchedule();
-        String classType = booking.getClassType();
-        Integer seatCount = booking.getSeatCount();
+    private void restoreSeatsFromReservation(ReservationModel reservation) {
+        BookingModel booking = reservation.getBooking();
+        Integer totalSeats = reservation.getTotalSeats();
+        restoreSeatsToSchedule(booking.getSchedule(), booking.getClassType(), totalSeats);
+    }
 
-        String normalizedClassType = classType.toUpperCase();
-        switch (normalizedClassType) {
+    private void restoreSeatsToSchedule(BookingModel booking) {
+        restoreSeatsToSchedule(booking.getSchedule(), booking.getClassType(), booking.getSeatCount());
+    }
+
+    private void restoreSeatsToSchedule(ScheduleModel schedule, String classType, Integer seatCount) {
+        switch (classType.toUpperCase()) {
             case "ECONOMY":
-                schedule.setAvailableEconomySeats(schedule.getAvailableEconomySeats() + seatCount);
+                int newEconomy = schedule.getAvailableEconomySeats() + seatCount;
+                schedule.setAvailableEconomySeats(Math.min(newEconomy, 50));
                 break;
             case "BUSINESS":
-                schedule.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats() + seatCount);
+                int newBusiness = schedule.getAvailableBusinessSeats() + seatCount;
+                schedule.setAvailableBusinessSeats(Math.min(newBusiness, 30));
                 break;
             case "FIRST_CLASS":
-                schedule.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats() + seatCount);
+                int newFirstClass = schedule.getAvailableFirstClassSeats() + seatCount;
+                schedule.setAvailableFirstClassSeats(Math.min(newFirstClass, 20));
                 break;
             case "LUXURY":
-                schedule.setAvailableLuxurySeats(schedule.getAvailableLuxurySeats() + seatCount);
+                int newLuxury = schedule.getAvailableLuxurySeats() + seatCount;
+                schedule.setAvailableLuxurySeats(Math.min(newLuxury, 10));
                 break;
         }
         scheduleRepo.save(schedule);

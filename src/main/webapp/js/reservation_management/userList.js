@@ -1,22 +1,20 @@
-class UserPaymentList {
+class UserReservationList {
     constructor() {
-        this.payments = [];
         this.passengerId = null;
-
+        this.reservations = [];
+        this.container = document.getElementById('reservationsContainer');
         this.loadingState = document.getElementById('loadingState');
-        this.noPaymentsState = document.getElementById('noPaymentsState');
-        this.paymentsContainer = document.getElementById('paymentsContainer');
+        this.noReservationsState = document.getElementById('noReservationsState');
 
         this.init();
     }
 
     init() {
         this.checkAuthentication();
-        this.loadUserPayments();
+        this.loadReservations();
     }
 
     checkAuthentication() {
-        // Use sessionStorage to match your booking system
         const session = sessionStorage.getItem('passengerSession');
         if (!session) {
             window.location.href = '/login';
@@ -31,69 +29,98 @@ class UserPaymentList {
         }
     }
 
-    async loadUserPayments() {
-        this.showState('loading');
+    showLoading(show) {
+        if (show) {
+            this.loadingState.classList.remove('hidden');
+            this.container.classList.add('hidden');
+            this.noReservationsState.classList.add('hidden');
+        } else {
+            this.loadingState.classList.add('hidden');
+        }
+    }
+
+    showError(message) {
+        const existingAlert = document.querySelector('.error-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        const alert = document.createElement('div');
+        alert.className = 'error-alert fixed top-4 right-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50';
+        alert.innerHTML = `
+            <i class="fas fa-exclamation-triangle text-red-600"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" class="ml-2 text-red-600 hover:text-red-800">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        document.body.appendChild(alert);
+
+        setTimeout(() => {
+            if (alert.parentElement) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+
+    showSuccess(message) {
+        const existingAlert = document.querySelector('.success-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        const alert = document.createElement('div');
+        alert.className = 'success-alert fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50 animate-pulse';
+        alert.innerHTML = `
+            <i class="fas fa-check-circle text-green-600"></i>
+            <span>${message}</span>
+        `;
+
+        document.body.appendChild(alert);
+
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+
+    async loadReservations() {
+        this.showLoading(true);
 
         try {
-            const response = await fetch(`/api/payments/passenger/${this.passengerId}`);
-
+            const response = await fetch(`/api/reservations/passenger/${this.passengerId}`);
             if (response.ok) {
-                this.payments = await response.json();
-
-                if (this.payments.length === 0) {
-                    this.showState('empty');
-                } else {
-                    this.renderPayments();
-                }
+                this.reservations = await response.json();
+                this.renderReservations();
             } else {
-                this.showError('Failed to load payments');
-                this.showState('empty');
+                this.showError('Failed to load your reservations.');
+                this.container.classList.add('hidden');
+                this.noReservationsState.classList.remove('hidden');
             }
         } catch (error) {
-            console.error('Error loading payments:', error);
-            this.showError('Failed to load payments');
-            this.showState('empty');
+            this.showError('Network error. Please try again.');
+            this.container.classList.add('hidden');
+            this.noReservationsState.classList.remove('hidden');
+        } finally {
+            this.showLoading(false);
         }
     }
 
-    showState(state) {
-        this.loadingState.classList.add('hidden');
-        this.noPaymentsState.classList.add('hidden');
-        this.paymentsContainer.classList.add('hidden');
+    renderReservations() {
+        this.container.innerHTML = '';
 
-        switch (state) {
-            case 'loading':
-                this.loadingState.classList.remove('hidden');
-                break;
-            case 'empty':
-                this.noPaymentsState.classList.remove('hidden');
-                break;
-            case 'data':
-                this.paymentsContainer.classList.remove('hidden');
-                break;
-        }
-    }
-
-    renderPayments() {
-        this.showState('data');
-
-        // Clear existing content except the header
-        const header = this.paymentsContainer.querySelector('.flex.justify-between');
-        this.paymentsContainer.innerHTML = '';
-        if (header) {
-            this.paymentsContainer.appendChild(header);
+        if (this.reservations.length === 0) {
+            this.container.classList.add('hidden');
+            this.noReservationsState.classList.remove('hidden');
+            return;
         }
 
-        // Sort payments by date (newest first)
-        const sortedPayments = [...this.payments].sort((a, b) => {
-            const dateA = new Date(a.paidAt || a.createdAt);
-            const dateB = new Date(b.paidAt || b.createdAt);
-            return dateB - dateA;
-        });
+        this.noReservationsState.classList.add('hidden');
+        this.container.classList.remove('hidden');
 
-        sortedPayments.forEach(payment => {
-            const card = this.createPaymentCard(payment);
-            this.paymentsContainer.appendChild(card);
+        this.reservations.forEach(reservation => {
+            const card = this.createReservationCard(reservation);
+            this.container.appendChild(card);
         });
     }
 
@@ -112,39 +139,37 @@ class UserPaymentList {
         return `<span class="class-badge ${styleClass}">${displayName}</span>`;
     }
 
+    getStatusDisplayText(status) {
+        const statusMap = {
+            'PENDING': 'Pending',
+            'CANCELLED': 'Cancelled',
+            'COMPLETED': 'Completed'
+        };
+        return statusMap[status] || status;
+    }
+
+    getStatusClass(status) {
+        const classes = {
+            'PENDING': 'bg-yellow-100 text-yellow-800',
+            'CANCELLED': 'bg-red-100 text-red-800',
+            'COMPLETED': 'bg-green-100 text-green-800'
+        };
+        return classes[status] || 'bg-gray-100 text-gray-800';
+    }
+
     createReservationCard(reservation) {
         const card = document.createElement('div');
-        card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300';
+        card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-6 border border-gray-200';
+        card.dataset.reservationId = reservation.id;
 
-        const booking = payment.booking || {};
+        const booking = reservation.booking || {};
         const schedule = booking.schedule || {};
-        const reservation = booking.reservation || payment.reservation || {};
-
-        const statusColors = {
-            'PENDING': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-            'COMPLETED': 'bg-green-100 text-green-800 border-green-200',
-            'FAILED': 'bg-red-100 text-red-800 border-red-200',
-            'REFUNDED': 'bg-blue-100 text-blue-800 border-blue-200'
-        };
-
-        const statusIcons = {
-            'PENDING': 'fa-clock',
-            'COMPLETED': 'fa-check-circle',
-            'FAILED': 'fa-times-circle',
-            'REFUNDED': 'fa-undo'
-        };
-
-        const methodIcons = {
-            'CREDIT_CARD': 'fab fa-cc-visa',
-            'DEBIT_CARD': 'fas fa-credit-card',
-            'UPI': 'fas fa-mobile-alt',
-            'NET_BANKING': 'fas fa-university'
-        };
+        const passenger = booking.passenger || {};
 
         const formattedDate = schedule.date ? new Date(schedule.date).toLocaleDateString('en-US', {
-            weekday: 'short',
+            weekday: 'long',
             year: 'numeric',
-            month: 'short',
+            month: 'long',
             day: 'numeric'
         }) : 'N/A';
 
@@ -219,7 +244,7 @@ class UserPaymentList {
                             <option value="${reservation.status}" selected>
                                 ${this.getStatusDisplayText(reservation.status)} (Current)
                             </option>
-                            ${reservation.status === 'PENDING' ? '<option value="CANCELLED">Cancel Reservation</option>' : ''}
+                            <option value="CANCELLED">Cancel Reservation</option>
                         </select>
                     </div>
                     ` : `
@@ -248,6 +273,17 @@ class UserPaymentList {
                     </button>
                     ` : ''}
 
+                    ${reservation.status === 'PENDING' ? `
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="pay-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
+                    >
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Pay
+                    </button>
+                    ` : ''}
+
                     <button 
                         type="button" 
                         data-id="${reservation.id}" 
@@ -265,248 +301,186 @@ class UserPaymentList {
         const updateBtn = card.querySelector('.update-status-btn');
         const deleteBtn = card.querySelector('.delete-reservation-btn');
         const statusSelect = card.querySelector('.status-select');
+        const payBtn = card.querySelector('.pay-btn');
 
-    formatPaymentMethod(method) {
-        const methods = {
-            'CREDIT_CARD': 'Credit Card',
-            'DEBIT_CARD': 'Debit Card',
-            'UPI': 'UPI',
-            'NET_BANKING': 'Net Banking'
-        };
-        return methods[method] || method;
-    }
+        // Hide update button initially
+        if (updateBtn) {
+            updateBtn.style.display = 'none';
+        }
 
-    formatDateTime(dateTimeString) {
-        const date = new Date(dateTimeString);
-        return date.toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
+        // Track dropdown changes
+        if (statusSelect && updateBtn) {
+            const originalStatus = reservation.status;
+
+            statusSelect.addEventListener('change', () => {
+                if (statusSelect.value !== originalStatus) {
+                    updateBtn.style.display = 'inline-flex'; // show button
+                } else {
+                    updateBtn.style.display = 'none'; // hide button
+                }
+            });
+        }
+
+        if (updateBtn) {
+            updateBtn.addEventListener('click', () => this.handleUpdateStatus(reservation.id, statusSelect.value));
+        }
+
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => this.handleDeleteReservation(reservation.id));
+        }
+
+        if (payBtn) {
+            payBtn.addEventListener('click', () => this.handlePaymentRedirect(reservation.id));
+        }
 
         return card;
     }
 
-    getStatusDisplayText(status) {
-        const statusMap = {
-            'PENDING': 'Pending',
-            'CANCELLED': 'Cancelled',
-            'COMPLETED': 'Completed'
-        };
-        return statusMap[status] || status;
-    }
-
-    getStatusClass(status) {
-        const classes = {
-            'PENDING': 'bg-yellow-100 text-yellow-800',
-            'COMPLETED': 'bg-green-100 text-green-800',
-            'FAILED': 'bg-red-100 text-red-800',
-            'REFUNDED': 'bg-blue-100 text-blue-800'
-        };
-        return classes[status] || 'bg-gray-100 text-gray-800';
-    }
-
-    async downloadReceipt(paymentId) {
-        const payment = this.payments.find(p => p.id === paymentId);
-        if (!payment || payment.paymentStatus !== 'COMPLETED') {
-            this.showError('Receipt is only available for completed payments');
+    handlePaymentRedirect(reservationId) {
+        if (!reservationId) {
+            this.showError('Invalid reservation ID.');
             return;
         }
 
+        // Redirect to the create payment page with reservation ID as a query parameter
+        window.location.href = `/create-payment?reservationId=${reservationId}`;
+    }
+
+    async handleUpdateStatus(reservationId, newStatus) {
+        if (!reservationId || !newStatus) {
+            this.showError('Invalid reservation or status.');
+            return;
+        }
+
+        const btn = document.querySelector(`.update-status-btn[data-id="${reservationId}"]`);
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
         try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const response = await fetch(`/api/reservations/${reservationId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
 
-            const booking = payment.booking || {};
-            const schedule = booking.schedule || {};
-            const reservation = booking.reservation || payment.reservation || {};
-            const passenger = booking.passenger || {};
-
-            // Header
-            doc.setFillColor(34, 43, 69);
-            doc.rect(0, 0, 210, 40, 'F');
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(24);
-            doc.text('RailSwift', 14, 20);
-            doc.setFontSize(12);
-            doc.text('Payment Receipt', 14, 30);
-
-            // Reset text color
-            doc.setTextColor(0, 0, 0);
-
-            // Receipt Info
-            doc.setFontSize(10);
-            doc.text(`Receipt Date: ${new Date().toLocaleDateString()}`, 150, 15, { align: 'right' });
-            doc.text(`Payment ID: #${payment.id}`, 150, 22, { align: 'right' });
-            doc.text(`Transaction ID: ${payment.transactionId}`, 150, 29, { align: 'right' });
-
-            let yPos = 50;
-
-            // Payment Status
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(34, 197, 94);
-            doc.text('PAYMENT COMPLETED', 105, yPos, { align: 'center' });
-            doc.setTextColor(0, 0, 0);
-            doc.setFont(undefined, 'normal');
-
-            yPos += 15;
-
-            // Passenger Information
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Passenger Information', 14, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            yPos += 7;
-            doc.text(`Name: ${passenger.firstName} ${passenger.lastName}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Email: ${passenger.email}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Contact: ${passenger.contactNo}`, 14, yPos);
-            yPos += 5;
-            doc.text(`NIC: ${passenger.nic}`, 14, yPos);
-
-            yPos += 12;
-
-            // Journey Details
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Journey Details', 14, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            yPos += 7;
-            doc.text(`Train: ${schedule.trainName} (${schedule.trainType})`, 14, yPos);
-            yPos += 5;
-            doc.text(`From: ${schedule.fromCity}`, 14, yPos);
-            yPos += 5;
-            doc.text(`To: ${schedule.toCity}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Date: ${new Date(schedule.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Time: ${schedule.time}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Seats: ${this.getSeatInfo(reservation, booking)}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Class: ${this.getClassInfo(reservation, booking)}`, 14, yPos);
-
-            yPos += 12;
-
-            // Payment Details
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Payment Details', 14, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            yPos += 7;
-            doc.text(`Payment Method: ${this.formatPaymentMethod(payment.paymentMethod)}`, 14, yPos);
-            yPos += 5;
-            doc.text(`Payment Date: ${this.formatDateTime(payment.paidAt)}`, 14, yPos);
-
-            yPos += 12;
-
-            // Amount Section
-            doc.setFillColor(240, 240, 240);
-            doc.rect(14, yPos, 182, 20, 'F');
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text('Total Amount Paid:', 20, yPos + 12);
-            doc.text(`Rs. ${parseFloat(payment.amount).toLocaleString()}`, 176, yPos + 12, { align: 'right' });
-
-            yPos += 30;
-
-            // Footer
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(100, 100, 100);
-            doc.text('Thank you for choosing RailSwift!', 105, yPos, { align: 'center' });
-            yPos += 5;
-            doc.text('For any queries, please contact support@railswift.com', 105, yPos, { align: 'center' });
-
-            // Border
-            doc.setDrawColor(34, 43, 69);
-            doc.setLineWidth(0.5);
-            doc.rect(10, 45, 190, yPos - 40);
-
-            // Save
-            doc.save(`payment-receipt-${payment.id}.pdf`);
-            this.showSuccess('Receipt downloaded successfully');
+            if (response.ok) {
+                this.showSuccess('Reservation status updated successfully!');
+                setTimeout(() => this.loadReservations(), 1000);
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to update reservation status.');
+            }
         } catch (error) {
-            console.error('Error generating receipt:', error);
-            this.showError('Failed to generate receipt. Please ensure jsPDF is loaded.');
+            this.showError('Network error. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     }
 
-    showSuccess(message) {
-        const alert = document.createElement('div');
-        alert.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50';
-        alert.innerHTML = `
-            <i class="fas fa-check-circle text-green-600"></i>
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()" class="ml-2 text-green-600 hover:text-green-800">
-                <i class="fas fa-times"></i>
-            </button>
+    async handleDeleteReservation(reservationId) {
+        const reservation = this.reservations.find(r => r.id == reservationId);
+        if (!reservation) return;
+
+        let confirmMessage = 'Are you sure you want to delete this reservation?';
+
+        // Add 24-hour expiration information for pending reservations
+        if (reservation.status === 'PENDING') {
+            confirmMessage += '\n\n📅 Your booking will be held for 24 hours. If you don\'t complete payment within 24 hours, your booking will be automatically cancelled and seats will be released to other customers.';
+
+            // Use custom modal for better UX
+            this.showCustomDeleteConfirmation(reservationId, confirmMessage);
+            return;
+        }
+
+        if (!confirm(confirmMessage)) return;
+
+        await this.proceedWithDeletion(reservationId);
+    }
+
+    // Enhanced delete confirmation with custom modal
+    showCustomDeleteConfirmation(reservationId, message) {
+        const modalHtml = `
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 mx-4">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-yellow-500 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-foreground">Delete Reservation</h3>
+                            <p class="text-sm text-muted-foreground mt-1 whitespace-pre-line">${message}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button 
+                            onclick="this.closest('.fixed').remove()" 
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="userReservationList.proceedWithDeletion(${reservationId})" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                            Delete Reservation
+                        </button>
+                    </div>
+                </div>
+            </div>
         `;
-        document.body.appendChild(alert);
-        setTimeout(() => alert.remove(), 5000);
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
 
-    getSeatInfo(reservation, booking) {
-        // Try the new DTO field names first
-        if (reservation && reservation.numberOfAdults !== undefined) {
-            const adults = reservation.numberOfAdults || 0;
-            const children = reservation.numberOfChildren || 0;
-            return `${adults} Adult(s), ${children} Child(ren)`;
-        }
-        // Fallback to old field names
-        if (reservation && reservation.numOfAdultSeats !== undefined) {
-            const adults = reservation.numOfAdultSeats || 0;
-            const children = reservation.numOfChildrenSeats || 0;
-            return `${adults} Adult(s), ${children} Child(ren)`;
-        }
-        if (booking && booking.numberOfAdults !== undefined) {
-            const adults = booking.numberOfAdults || 0;
-            const children = booking.numberOfChildren || 0;
-            return `${adults} Adult(s), ${children} Child(ren)`;
-        }
-        return '0 Adult(s), 0 Child(ren)';
-    }
+    // Extract deletion logic to separate method
+    async proceedWithDeletion(reservationId) {
+        // Remove any custom modals
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.remove());
 
-    getClassInfo(reservation, booking) {
-        // Try the new DTO field name first
-        if (reservation && reservation.classType) {
-            return reservation.classType;
-        }
-        // Fallback to old field names
-        if (reservation && reservation.trainBoxClass) {
-            return reservation.trainBoxClass;
-        }
-        if (booking && booking.classType) {
-            return booking.classType;
-        }
-        return 'N/A';
-    }
+        const card = document.querySelector(`[data-reservation-id="${reservationId}"]`);
+        if (!card) return;
 
-    showError(message) {
-        const alert = document.createElement('div');
-        alert.className = 'fixed top-4 right-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50';
-        alert.innerHTML = `
-            <i class="fas fa-exclamation-triangle text-red-600"></i>
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()" class="ml-2 text-red-600 hover:text-red-800">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-        document.body.appendChild(alert);
-        setTimeout(() => alert.remove(), 5000);
+        const deleteBtn = card.querySelector('.delete-reservation-btn');
+        const originalText = deleteBtn.innerHTML;
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Deleting...';
+
+        try {
+            const response = await fetch(`/api/reservations/${reservationId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                const reservation = this.reservations.find(r => r.id == reservationId);
+                if (reservation && reservation.status === 'PENDING') {
+                    this.showSuccess('Reservation deleted! Remember: Complete payment within 24 hours to keep your booking.');
+                } else {
+                    this.showSuccess('Reservation deleted successfully!');
+                }
+
+                card.remove();
+
+                // Check if no reservations left
+                if (document.querySelectorAll('[data-reservation-id]').length === 0) {
+                    this.container.classList.add('hidden');
+                    this.noReservationsState.classList.remove('hidden');
+                }
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to delete reservation.');
+            }
+        } catch (error) {
+            this.showError('Network error. Please try again.');
+        } finally {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = originalText;
+        }
     }
 }
 
-let userPaymentList;
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    userPaymentList = new UserPaymentList();
+    window.userReservationList = new UserReservationList();
 });

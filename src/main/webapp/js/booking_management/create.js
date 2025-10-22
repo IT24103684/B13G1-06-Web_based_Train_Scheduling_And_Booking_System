@@ -442,6 +442,8 @@ class CreateBooking {
                 sessionStorage.setItem('bookingClassType', classType);
                 sessionStorage.setItem('bookingTotalAmount', (seatCount * this.pricePerSeat * this.getClassMultiplier(classType)).toString());
 
+                // IMPORTANT: Don't update UI seat availability here - seats will be reduced during reservation creation
+
                 setTimeout(() => {
                     window.location.href = '/create-reservation?bookingId=' + result.id;
                 }, 2000);

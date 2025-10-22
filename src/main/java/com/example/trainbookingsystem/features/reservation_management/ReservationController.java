@@ -98,6 +98,22 @@ public class ReservationController {
         }
     }
 
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelReservation(@PathVariable Long id) {
+        try {
+            Optional<ReservationDTOS.ReservationResponseDTO> reservation = reservationService.cancelReservation(id);
+            if (reservation.isPresent()) {
+                return ResponseEntity.ok(reservation.get());
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Reservation not found");
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error cancelling reservation");
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteReservation(@PathVariable Long id) {
         try {

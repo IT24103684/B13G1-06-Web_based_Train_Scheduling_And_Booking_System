@@ -4,6 +4,7 @@ import com.example.trainbookingsystem.features.booking_management.BookingModel;
 import com.example.trainbookingsystem.features.booking_management.BookingRepo;
 import com.example.trainbookingsystem.features.schedule_management.ScheduleModel;
 import com.example.trainbookingsystem.features.schedule_management.ScheduleRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -54,6 +55,41 @@ public class ReservationService {
         return !"PAID".equals(status);
     }
 
+    @Transactional
+    public Optional<ReservationDTOS.ReservationResponseDTO> cancelReservation(Long id) {
+        return reservationRepo.findByIdAndDeleteStatus(id, false)
+                .map(reservation -> {
+                    // Validate if reservation can be cancelled
+                    if (!"PENDING".equals(reservation.getStatus())) {
+                        throw new RuntimeException("Only PENDING reservations can be cancelled");
+                    }
+
+                    // Update status to CANCELLED
+                    reservation.setStatus("CANCELLED");
+                    ReservationModel updatedReservation = reservationRepo.save(reservation);
+
+                    return convertToResponseDTO(updatedReservation);
+                });
+    }
+
+    private void restoreSeatsToSchedule(ScheduleModel schedule, String classType, Integer seatCount) {
+        switch (classType.toUpperCase()) {
+            case "ECONOMY":
+                schedule.setAvailableEconomySeats(schedule.getAvailableEconomySeats() + seatCount);
+                break;
+            case "BUSINESS":
+                schedule.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats() + seatCount);
+                break;
+            case "FIRST_CLASS":
+                schedule.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats() + seatCount);
+                break;
+            case "LUXURY":
+                schedule.setAvailableLuxurySeats(schedule.getAvailableLuxurySeats() + seatCount);
+                break;
+        }
+        scheduleRepo.save(schedule);
+    }
+
     public List<ReservationDTOS.ReservationResponseDTO> getAllReservations() {
         return reservationRepo.findByDeleteStatusOrderByCreatedAtDesc(false).stream()
                 .map(this::convertToResponseDTO)
@@ -97,9 +133,6 @@ public class ReservationService {
                     ") exceeds booking seat count (" + bookingModel.getSeatCount() + ")");
         }
 
-        // VALIDATE SEAT AVAILABILITY
-        validateSeatAvailability(bookingModel.getSchedule(), bookingModel.getClassType(), createDTO.getTotalSeats());
-
         if (reservationRepo.existsByBookingIdAndDeleteStatus(createDTO.getBookingId(), false)) {
             throw new RuntimeException("Reservation already exists for this booking");
         }
@@ -121,60 +154,10 @@ public class ReservationService {
 
         ReservationModel savedReservation = reservationRepo.save(reservation);
 
-        // UPDATE SCHEDULE AVAILABILITY
-        updateScheduleAvailability(bookingModel.getSchedule(), bookingModel.getClassType(), createDTO.getTotalSeats());
-
         return convertToResponseDTO(savedReservation);
     }
 
-    // ADD SEAT AVAILABILITY VALIDATION METHOD
-    private void validateSeatAvailability(ScheduleModel schedule, String classType, Integer seatCount) {
-        int availableSeats = getAvailableSeatsByClass(schedule, classType);
 
-        if (seatCount <= 0) {
-            throw new RuntimeException("Seat count must be greater than 0");
-        }
-
-        if (seatCount > availableSeats) {
-            throw new RuntimeException("Not enough seats available in " + classType + " class. Available: " + availableSeats);
-        }
-    }
-
-    private int getAvailableSeatsByClass(ScheduleModel schedule, String classType) {
-        switch (classType.toUpperCase()) {
-            case "ECONOMY":
-                return schedule.getAvailableEconomySeats();
-            case "BUSINESS":
-                return schedule.getAvailableBusinessSeats();
-            case "FIRST_CLASS":
-                return schedule.getAvailableFirstClassSeats();
-            case "LUXURY":
-                return schedule.getAvailableLuxurySeats();
-            default:
-                throw new RuntimeException("Invalid class type: " + classType);
-        }
-    }
-
-    private void updateScheduleAvailability(ScheduleModel schedule, String classType, Integer seatCount) {
-        switch (classType.toUpperCase()) {
-            case "ECONOMY":
-                schedule.setAvailableEconomySeats(schedule.getAvailableEconomySeats() - seatCount);
-                break;
-            case "BUSINESS":
-                schedule.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats() - seatCount);
-                break;
-            case "FIRST_CLASS":
-                schedule.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats() - seatCount);
-                break;
-            case "LUXURY":
-                schedule.setAvailableLuxurySeats(schedule.getAvailableLuxurySeats() - seatCount);
-                break;
-        }
-        scheduleRepo.save(schedule);
-    }
-
-    // UPDATE updateReservation method with seat validation
-    // UPDATE updateReservation method with seat validation
     public Optional<ReservationDTOS.ReservationResponseDTO> updateReservation(Long id, ReservationDTOS.UpdateReservationDTO updateDTO) {
         return reservationRepo.findByIdAndDeleteStatus(id, false)
                 .map(reservation -> {
@@ -193,12 +176,6 @@ public class ReservationService {
                             if (newTotalSeats > booking.getSeatCount()) {
                                 throw new RuntimeException("Reservation seat count (" + newTotalSeats +
                                         ") exceeds booking seat count (" + booking.getSeatCount() + ")");
-                            }
-
-                            // Validate seat availability for the difference
-                            int seatDifference = newTotalSeats - currentTotalSeats;
-                            if (seatDifference > 0) {
-                                validateSeatAvailability(booking.getSchedule(), booking.getClassType(), seatDifference);
                             }
                         }
                     }
@@ -227,16 +204,6 @@ public class ReservationService {
 
                     ReservationModel updatedReservation = reservationRepo.save(reservation);
 
-                    // UPDATE SCHEDULE AVAILABILITY IF SEATS CHANGED
-                    if (updateDTO.getNumOfAdultSeats() != null || updateDTO.getNumOfChildrenSeats() != null) {
-                        Integer newTotalSeats = updatedReservation.getTotalSeats();
-                        int seatDifference = newTotalSeats - currentTotalSeats;
-
-                        if (seatDifference != 0) {
-                            updateScheduleAvailability(booking.getSchedule(), booking.getClassType(), seatDifference);
-                        }
-                    }
-
                     return convertToResponseDTO(updatedReservation);
                 });
     }
@@ -254,7 +221,9 @@ public class ReservationService {
             // RESTORE SEAT AVAILABILITY WHEN DELETING RESERVATION
             BookingModel booking = reservationModel.getBooking();
             Integer totalSeats = reservationModel.getTotalSeats();
-            updateScheduleAvailability(booking.getSchedule(), booking.getClassType(), -totalSeats);
+
+            // Use the new restore method to add seats back
+            restoreSeatsToSchedule(booking.getSchedule(), booking.getClassType(), totalSeats);
 
             reservationModel.setDeleteStatus(true);
             reservationRepo.save(reservationModel);
@@ -262,6 +231,7 @@ public class ReservationService {
         }
         return false;
     }
+
 
     // UPDATE convertToResponseDTO to include class type
     private ReservationDTOS.ReservationResponseDTO convertToResponseDTO(ReservationModel reservation) {
