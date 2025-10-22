@@ -11,7 +11,11 @@ class ScheduleCreate {
             trainName: /^[a-zA-Z0-9\s\-]{2,50}$/,
             trainType: /^(Super Luxary|Luxary|Normal)$/,
             date: /^\d{4}-\d{2}-\d{2}$/,
-            time: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+            time: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
+            availableEconomySeats: /^\d+$/,
+            availableBusinessSeats: /^\d+$/,
+            availableFirstClassSeats: /^\d+$/,
+            availableLuxurySeats: /^\d+$/
         };
 
         this.init();
@@ -112,7 +116,11 @@ class ScheduleCreate {
             trainName: 'Train name must be 2-50 characters and contain only letters, numbers, spaces and hyphens',
             trainType: 'Please select a valid train type',
             date: 'Please enter a valid date',
-            time: 'Please enter a valid time'
+            time: 'Please enter a valid time',
+            availableEconomySeats: 'Please enter a valid number for economy seats',
+            availableBusinessSeats: 'Please enter a valid number for business seats',
+            availableFirstClassSeats: 'Please enter a valid number for first class seats',
+            availableLuxurySeats: 'Please enter a valid number for luxury seats'
         };
         return messages[fieldName];
     }
@@ -185,7 +193,11 @@ class ScheduleCreate {
             date: formData.get('date'),
             time: formData.get('time'),
             trainName: formData.get('trainName').trim(),
-            trainType: formData.get('trainType')
+            trainType: formData.get('trainType'),
+            availableEconomySeats: parseInt(formData.get('availableEconomySeats')) || 50,
+            availableBusinessSeats: parseInt(formData.get('availableBusinessSeats')) || 30,
+            availableFirstClassSeats: parseInt(formData.get('availableFirstClassSeats')) || 20,
+            availableLuxurySeats: parseInt(formData.get('availableLuxurySeats')) || 10
         };
 
         try {

@@ -52,6 +52,19 @@ public class ScheduleService {
                 createDTO.getTrainName()
         );
 
+        if (createDTO.getAvailableEconomySeats() != null) {
+            schedule.setAvailableEconomySeats(createDTO.getAvailableEconomySeats());
+        }
+        if (createDTO.getAvailableBusinessSeats() != null) {
+            schedule.setAvailableBusinessSeats(createDTO.getAvailableBusinessSeats());
+        }
+        if (createDTO.getAvailableFirstClassSeats() != null) {
+            schedule.setAvailableFirstClassSeats(createDTO.getAvailableFirstClassSeats());
+        }
+        if (createDTO.getAvailableLuxurySeats() != null) {
+            schedule.setAvailableLuxurySeats(createDTO.getAvailableLuxurySeats());
+        }
+
         ScheduleModel savedSchedule = scheduleRepo.save(schedule);
         return convertToResponseDTO(savedSchedule);
     }
@@ -77,6 +90,21 @@ public class ScheduleService {
                     if (updateDTO.getTrainName() != null) {
                         schedule.setTrainName(updateDTO.getTrainName());
                     }
+
+                    // UPDATE SEAT AVAILABILITY IF PROVIDED
+                    if (updateDTO.getAvailableEconomySeats() != null) {
+                        schedule.setAvailableEconomySeats(updateDTO.getAvailableEconomySeats());
+                    }
+                    if (updateDTO.getAvailableBusinessSeats() != null) {
+                        schedule.setAvailableBusinessSeats(updateDTO.getAvailableBusinessSeats());
+                    }
+                    if (updateDTO.getAvailableFirstClassSeats() != null) {
+                        schedule.setAvailableFirstClassSeats(updateDTO.getAvailableFirstClassSeats());
+                    }
+                    if (updateDTO.getAvailableLuxurySeats() != null) {
+                        schedule.setAvailableLuxurySeats(updateDTO.getAvailableLuxurySeats());
+                    }
+
                     return convertToResponseDTO(scheduleRepo.save(schedule));
                 });
     }
@@ -101,6 +129,13 @@ public class ScheduleService {
         responseDTO.setTime(schedule.getTime());
         responseDTO.setTrainType(schedule.getTrainType());
         responseDTO.setTrainName(schedule.getTrainName());
+
+        // ADD SEAT AVAILABILITY TO RESPONSE
+        responseDTO.setAvailableEconomySeats(schedule.getAvailableEconomySeats());
+        responseDTO.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats());
+        responseDTO.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats());
+        responseDTO.setAvailableLuxurySeats(schedule.getAvailableLuxurySeats());
+
         responseDTO.setDeleteStatus(schedule.getDeleteStatus());
         responseDTO.setCreatedAt(schedule.getCreatedAt());
         responseDTO.setUpdatedAt(schedule.getUpdatedAt());

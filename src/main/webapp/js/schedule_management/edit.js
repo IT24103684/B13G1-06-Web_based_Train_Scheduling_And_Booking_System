@@ -106,6 +106,11 @@ class ScheduleEdit {
         document.getElementById('time').value = schedule.time || '';
         document.getElementById('trainName').value = schedule.trainName || '';
         document.getElementById('trainType').value = schedule.trainType || '';
+        document.getElementById('availableEconomySeats').value = schedule.availableEconomySeats || 50;
+        document.getElementById('availableBusinessSeats').value = schedule.availableBusinessSeats || 30;
+        document.getElementById('availableFirstClassSeats').value = schedule.availableFirstClassSeats || 20;
+        document.getElementById('availableLuxurySeats').value = schedule.availableLuxurySeats || 10;
+
 
         this.elements.createdAt.textContent = this.formatDateTime(schedule.createdAt);
         this.elements.updatedAt.textContent = this.formatDateTime(schedule.updatedAt);
@@ -233,7 +238,11 @@ class ScheduleEdit {
             date: document.getElementById('date').value,
             time: document.getElementById('time').value,
             trainName: document.getElementById('trainName').value.trim(),
-            trainType: document.getElementById('trainType').value
+            trainType: document.getElementById('trainType').value,
+            availableEconomySeats: parseInt(document.getElementById('availableEconomySeats').value) || 0,
+            availableBusinessSeats: parseInt(document.getElementById('availableBusinessSeats').value) || 0,
+            availableFirstClassSeats: parseInt(document.getElementById('availableFirstClassSeats').value) || 0,
+            availableLuxurySeats: parseInt(document.getElementById('availableLuxurySeats').value) || 0
         };
 
         return (
@@ -242,7 +251,11 @@ class ScheduleEdit {
             currentData.date !== this.originalData.date ||
             currentData.time !== this.originalData.time ||
             currentData.trainName !== this.originalData.trainName ||
-            currentData.trainType !== this.originalData.trainType
+            currentData.trainType !== this.originalData.trainType ||
+            currentData.availableEconomySeats !== this.originalData.availableEconomySeats ||
+            currentData.availableBusinessSeats !== this.originalData.availableBusinessSeats ||
+            currentData.availableFirstClassSeats !== this.originalData.availableFirstClassSeats ||
+            currentData.availableLuxurySeats !== this.originalData.availableLuxurySeats
         );
     }
 
@@ -279,7 +292,11 @@ class ScheduleEdit {
             date: formData.get('date'),
             time: formData.get('time'),
             trainName: formData.get('trainName').trim(),
-            trainType: formData.get('trainType')
+            trainType: formData.get('trainType'),
+            availableEconomySeats: parseInt(formData.get('availableEconomySeats')) || 0,
+            availableBusinessSeats: parseInt(formData.get('availableBusinessSeats')) || 0,
+            availableFirstClassSeats: parseInt(formData.get('availableFirstClassSeats')) || 0,
+            availableLuxurySeats: parseInt(formData.get('availableLuxurySeats')) || 0
         };
 
         try {
