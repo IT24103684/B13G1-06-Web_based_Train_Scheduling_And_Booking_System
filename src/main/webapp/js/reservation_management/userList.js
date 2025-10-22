@@ -130,6 +130,45 @@ class UserReservationList {
         return `<span class="class-badge ${styleClass}">${displayName}</span>`;
     }
 
+    async cancelReservation(reservationId) {
+        if (!confirm('Are you sure you want to cancel this reservation? This will restore the seats to availability.')) {
+            return;
+        }
+
+        const card = document.querySelector(`[data-reservation-id="${reservationId}"]`);
+        if (!card) return;
+
+        const cancelBtn = card.querySelector('.cancel-btn') || card.querySelector('.update-status-btn');
+        const originalText = cancelBtn?.innerHTML || 'Cancel';
+
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
+            cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Cancelling...';
+        }
+
+        try {
+            const response = await fetch(`/api/reservations/${reservationId}/cancel`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.showSuccess('Reservation cancelled successfully! Seats have been restored.');
+                setTimeout(() => this.loadReservations(), 1000);
+            } else {
+                const error = await response.text();
+                this.showError(error || 'Failed to cancel reservation');
+            }
+        } catch (error) {
+            this.showError('Network error. Please try again.');
+        } finally {
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+                cancelBtn.innerHTML = originalText;
+            }
+        }
+    }
+
     createReservationCard(reservation) {
         const card = document.createElement('div');
         card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-6 border border-gray-200';
@@ -217,7 +256,7 @@ class UserReservationList {
                             <option value="${reservation.status}" selected>
                                 ${this.getStatusDisplayText(reservation.status)} (Current)
                             </option>
-                            ${reservation.status === 'PENDING' ? '<option value="CANCELLED">Cancel Reservation</option>' : ''}
+                            <option value="CANCELLED">Cancel Reservation</option>
                         </select>
                     </div>
                     ` : `
@@ -246,6 +285,19 @@ class UserReservationList {
                     </button>
                     ` : ''}
 
+                    ${reservation.status === 'PENDING' ? `
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="pay-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
+                    >
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Pay
+                    </button>
+                    ` : ''}
+
+                    <!-- REMOVED CANCEL BUTTON - using dropdown instead -->
+
                     <button 
                         type="button" 
                         data-id="${reservation.id}" 
@@ -263,6 +315,25 @@ class UserReservationList {
         const updateBtn = card.querySelector('.update-status-btn');
         const deleteBtn = card.querySelector('.delete-reservation-btn');
         const statusSelect = card.querySelector('.status-select');
+        const payBtn = card.querySelector('.pay-btn');
+
+        // Hide update button initially
+        if (updateBtn) {
+            updateBtn.style.display = 'none';
+        }
+
+        // Track dropdown changes
+        if (statusSelect && updateBtn) {
+            const originalStatus = reservation.status;
+
+            statusSelect.addEventListener('change', () => {
+                if (statusSelect.value !== originalStatus) {
+                    updateBtn.style.display = 'inline-flex'; // show button
+                } else {
+                    updateBtn.style.display = 'none'; // hide button
+                }
+            });
+        }
 
         if (updateBtn) {
             updateBtn.addEventListener('click', () => this.handleUpdateStatus(reservation.id, statusSelect.value));
@@ -272,8 +343,23 @@ class UserReservationList {
             deleteBtn.addEventListener('click', () => this.handleDeleteReservation(reservation.id));
         }
 
+        if (payBtn) {
+            payBtn.addEventListener('click', () => this.handlePaymentRedirect(reservation.id));
+        }
+
         return card;
     }
+
+    handlePaymentRedirect(reservationId) {
+        if (!reservationId) {
+            this.showError('Invalid reservation ID.');
+            return;
+        }
+
+        // Redirect to the create payment page with reservation ID as a query parameter
+        window.location.href = `/create-payment?reservationId=${reservationId}`;
+    }
+
 
     getStatusDisplayText(status) {
         const statusMap = {
