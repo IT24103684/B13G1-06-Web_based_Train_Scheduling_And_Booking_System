@@ -49,7 +49,7 @@ public class FeedbackController {
         }
     }
 
-
+    // Admin endpoints for deleted feedbacks
     @GetMapping("/deleted")
     public ResponseEntity<?> getDeletedFeedbacks() {
         try {
