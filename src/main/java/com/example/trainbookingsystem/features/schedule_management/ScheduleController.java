@@ -94,16 +94,23 @@ public class ScheduleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteSchedule(@PathVariable Long id) {
+    public ResponseEntity<?> deleteSchedule(@PathVariable Long id, @RequestParam(required = false) Boolean hardDelete) {
         try {
-            boolean deleted = scheduleService.deleteSchedule(id);
+            boolean isHardDelete = Boolean.TRUE.equals(hardDelete);
+            boolean deleted = scheduleService.deleteSchedule(id, isHardDelete);
             if (deleted) {
-                return ResponseEntity.ok("Schedule deleted successfully");
+                String message = isHardDelete ?
+                        "Schedule permanently deleted successfully" :
+                        "Schedule soft deleted successfully";
+                return ResponseEntity.ok(message);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Schedule not found");
             }
+        } catch (ScheduleService.ScheduleException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting schedule");
         }
     }
+
 }
