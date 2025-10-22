@@ -249,36 +249,36 @@ class AdminReservationList {
                         <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                 this.getStatusClass(reservation.status)
             }">
-                            ${reservation.status || 'N/A'}
-                        </span>
-                    </td>
-                    <td class="p-4 align-middle text-right">
-                        <div class="flex items-center justify-end space-x-2">
-                            <button 
-                                class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="View Reservation"
-                            >
-                                <i class="fas fa-eye text-primary"></i>
-                            </button>
-                            <button 
-                                class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="Edit Reservation"
-                            >
-                                <i class="fas fa-edit text-primary"></i>
-                            </button>
-                            <button 
-                                class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="Delete Reservation"
-                            >
-                                <i class="fas fa-trash text-destructive"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+                        ${reservation.status || 'N/A'}
+                    </span>
+                </td>
+                <td class="p-4 align-middle text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                        <button 
+                            class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            data-reservation-id="${reservation.id}"
+                            title="View Reservation"
+                        >
+                            <i class="fas fa-eye text-primary"></i>
+                        </button>
+                        <button 
+                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            data-reservation-id="${reservation.id}"
+                            title="Edit Reservation"
+                        >
+                            <i class="fas fa-edit text-primary"></i>
+                        </button>
+                        <button 
+                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            data-reservation-id="${reservation.id}"
+                            title="Delete Reservation"
+                        >
+                            <i class="fas fa-trash text-destructive"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
         }).join('');
     }
 
@@ -332,7 +332,8 @@ class AdminReservationList {
         document.getElementById('viewBookingNotes').textContent = booking.additionalNotes || 'None provided';
         document.getElementById('viewAdultSeats').textContent = reservation.numOfAdultSeats || 0;
         document.getElementById('viewChildSeats').textContent = reservation.numOfChildrenSeats || 0;
-        document.getElementById('viewTrainBoxClass').textContent = reservation.trainBoxClass || 'N/A';
+        // FIX: Use classType instead of trainBoxClass
+        document.getElementById('viewTrainBoxClass').textContent = reservation.classType || 'N/A';
         document.getElementById('viewTotalBill').textContent = `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`;
         document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${this.getStatusClass(reservation.status)}`;
         document.getElementById('viewStatus').textContent = reservation.status || 'N/A';
@@ -369,7 +370,16 @@ class AdminReservationList {
     `;
         statusSelect.value = reservation.status || 'PENDING';
 
-        // Calculate total bill
+        // Update status dropdown with only allowed options
+        const statusSelect = document.getElementById('editStatus');
+        statusSelect.innerHTML = `
+        <option value="PENDING">Pending</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+    `;
+        statusSelect.value = reservation.status || 'PENDING';
+
+        // Calculate total bill (if needed)
         this.calculateTotalBill();
 
         this.elements.editModal.classList.remove('hidden');
@@ -568,7 +578,7 @@ class AdminReservationList {
                     schedule.trainName || 'N/A',
                     `${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}`,
                     `${reservation.numOfAdultSeats || 0}A/${reservation.numOfChildrenSeats || 0}C`,
-                    reservation.trainBoxClass || 'N/A',
+                    reservation.classType || 'N/A',
                     `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`,
                     reservation.status || 'N/A'
                 ];
