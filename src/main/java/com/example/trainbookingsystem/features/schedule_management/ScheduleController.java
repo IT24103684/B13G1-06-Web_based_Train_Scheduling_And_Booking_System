@@ -1,10 +1,13 @@
 package com.example.trainbookingsystem.features.schedule_management;
 
+import com.example.trainbookingsystem.patterns.observer.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +17,30 @@ public class ScheduleController {
 
     @Autowired
     private ScheduleService scheduleService;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @GetMapping("/notifications")
+    public ResponseEntity<List<String>> getNotifications() {
+        System.out.println("📢 Notifications endpoint called");
+        try {
+            List<String> messages = notificationService.getMessages();
+            System.out.println("📢 Returning " + messages.size() + " notifications: " + messages);
+
+            // Ensure we always return a List, never null
+            if (messages == null) {
+                messages = new ArrayList<>();
+            }
+
+            return ResponseEntity.ok(messages);
+        } catch (Exception e) {
+            System.err.println("❌ Error in notifications endpoint: " + e.getMessage());
+            e.printStackTrace();
+            // Return empty list instead of error
+            return ResponseEntity.ok(new ArrayList<>());
+        }
+    }
 
     @GetMapping
     public ResponseEntity<?> getAllSchedules() {
@@ -112,5 +139,4 @@ public class ScheduleController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting schedule");
         }
     }
-
 }
