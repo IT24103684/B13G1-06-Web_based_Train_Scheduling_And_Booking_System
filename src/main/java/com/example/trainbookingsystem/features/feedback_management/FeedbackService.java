@@ -70,7 +70,7 @@ public class FeedbackService {
                         feedback.setMessage(updateDTO.getMessage());
                     }
                     if (updateDTO.getNumOfStars() != null) {
-
+                        // Validate rating range
                         if (updateDTO.getNumOfStars() < 1 || updateDTO.getNumOfStars() > 5) {
                             throw new FeedbackException("Rating must be between 1 and 5 stars");
                         }
