@@ -3,22 +3,40 @@ class CreatePayment {
         this.reservationId = null;
         this.passengerId = null;
         this.reservationData = null;
-        this.form = document.getElementById('paymentForm');
-        this.submitBtn = document.getElementById('submitBtn');
-        this.buttonText = this.submitBtn.querySelector('.button-text');
-        this.loadingSpinner = this.submitBtn.querySelector('.loading-spinner');
-        this.loadingState = document.getElementById('loadingState');
-        this.mainContent = document.getElementById('mainContent');
+        this.form = null;
+        this.submitBtn = null;
+        this.buttonText = null;
+        this.loadingSpinner = null;
+        this.loadingState = null;
+        this.mainContent = null;
         this.selectedPaymentMethod = null;
 
-        this.init();
+        // Initialize after DOM is loaded
+        setTimeout(() => this.init(), 100);
     }
 
     init() {
         this.checkAuthentication();
         this.getReservationIdFromUrl();
+        this.initializeElements();
         this.bindEvents();
         this.loadReservationData();
+    }
+
+    initializeElements() {
+        this.form = document.getElementById('paymentForm');
+        this.submitBtn = document.getElementById('submitBtn');
+        this.buttonText = this.submitBtn ? this.submitBtn.querySelector('.button-text') : null;
+        this.loadingSpinner = this.submitBtn ? this.submitBtn.querySelector('.loading-spinner') : null;
+        this.loadingState = document.getElementById('loadingState');
+        this.mainContent = document.getElementById('mainContent');
+
+        console.log('Elements initialized:', {
+            form: !!this.form,
+            submitBtn: !!this.submitBtn,
+            loadingState: !!this.loadingState,
+            mainContent: !!this.mainContent
+        });
     }
 
     checkAuthentication() {
@@ -34,7 +52,7 @@ class CreatePayment {
         const urlParams = new URLSearchParams(window.location.search);
         this.reservationId = urlParams.get('reservationId');
 
-        console.log('Reservation ID from URL:', this.reservationId); // Debug log
+        console.log('Reservation ID from URL:', this.reservationId);
 
         if (!this.reservationId || isNaN(this.reservationId)) {
             this.showError(null, 'Invalid reservation ID');
@@ -46,12 +64,17 @@ class CreatePayment {
     }
 
     bindEvents() {
+        console.log('Binding events...');
+
         if (this.form) {
             this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+            console.log('Form submit event bound');
         }
 
-        // Payment method selection
-        const paymentOptions = document.querySelectorAll('.payment-method-option');
+        // Payment method selection - FIXED: Using correct CSS class
+        const paymentOptions = document.querySelectorAll('.payment-method-option-enhanced');
+        console.log('Found payment options:', paymentOptions.length);
+
         paymentOptions.forEach(option => {
             option.addEventListener('click', () => this.selectPaymentMethod(option));
         });
@@ -67,11 +90,20 @@ class CreatePayment {
         if (cvv) {
             cvv.addEventListener('input', (e) => this.formatCVV(e.target));
         }
+
+        // Add click event to document to handle any dynamic elements
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.payment-method-option-enhanced')) {
+                this.selectPaymentMethod(e.target.closest('.payment-method-option-enhanced'));
+            }
+        });
     }
 
     selectPaymentMethod(option) {
+        console.log('Payment method selected:', option.dataset.method);
+
         // Remove selection from all options
-        document.querySelectorAll('.payment-method-option').forEach(opt => {
+        document.querySelectorAll('.payment-method-option-enhanced').forEach(opt => {
             opt.classList.remove('selected');
             const dot = opt.querySelector('.h-3.w-3');
             if (dot) dot.classList.add('hidden');
@@ -97,6 +129,8 @@ class CreatePayment {
     }
 
     showPaymentDetails(method) {
+        console.log('Showing payment details for:', method);
+
         // Hide all payment detail sections
         const paymentDetails = document.getElementById('paymentDetails');
         const cardFields = document.getElementById('cardFields');
@@ -111,18 +145,28 @@ class CreatePayment {
         // Show the relevant section
         if (paymentDetails) {
             paymentDetails.classList.remove('hidden');
+            console.log('Payment details section shown');
         }
 
         switch (method) {
             case 'CREDIT_CARD':
             case 'DEBIT_CARD':
-                if (cardFields) cardFields.classList.remove('hidden');
+                if (cardFields) {
+                    cardFields.classList.remove('hidden');
+                    console.log('Card fields shown');
+                }
                 break;
             case 'UPI':
-                if (upiFields) upiFields.classList.remove('hidden');
+                if (upiFields) {
+                    upiFields.classList.remove('hidden');
+                    console.log('UPI fields shown');
+                }
                 break;
             case 'NET_BANKING':
-                if (netBankingFields) netBankingFields.classList.remove('hidden');
+                if (netBankingFields) {
+                    netBankingFields.classList.remove('hidden');
+                    console.log('Net banking fields shown');
+                }
                 break;
         }
     }
@@ -149,27 +193,27 @@ class CreatePayment {
         this.showLoading(true);
 
         try {
-            console.log('Loading reservation data for ID:', this.reservationId); // Debug log
+            console.log('Loading reservation data for ID:', this.reservationId);
 
             const response = await fetch(`/api/reservations/${this.reservationId}`);
 
-            console.log('Response status:', response.status); // Debug log
+            console.log('Response status:', response.status);
 
             if (response.ok) {
                 this.reservationData = await response.json();
-                console.log('Reservation data loaded:', this.reservationData); // Debug log
+                console.log('Reservation data loaded:', this.reservationData);
                 this.displayReservationData();
                 this.showLoading(false);
             } else {
                 const errorText = await response.text();
-                console.error('Failed to load reservation:', errorText); // Debug log
+                console.error('Failed to load reservation:', errorText);
                 this.showError(null, 'Reservation not found or you do not have permission to access it');
                 setTimeout(() => {
                     window.location.href = '/my-reservations';
                 }, 3000);
             }
         } catch (error) {
-            console.error('Error loading reservation data:', error); // Debug log
+            console.error('Error loading reservation data:', error);
             this.showError(null, 'Error loading reservation data. Please try again.');
             setTimeout(() => {
                 window.location.href = '/my-reservations';
@@ -189,7 +233,7 @@ class CreatePayment {
         const passenger = booking.passenger || {};
 
         console.log('Displaying reservation data:', reservation);
-        console.log('Booking data:', booking); // Debug log to check booking structure
+        console.log('Booking data:', booking);
 
         // Display reservation summary
         this.setElementText('reservationIdDisplay', `#${reservation.id}`);
@@ -434,7 +478,7 @@ class CreatePayment {
             transactionId: transactionId
         };
 
-        console.log('Submitting payment:', paymentData); // Debug log
+        console.log('Submitting payment:', paymentData);
 
         try {
             // Simulate payment processing
@@ -450,7 +494,7 @@ class CreatePayment {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Payment created successfully:', result); // Debug log
+                console.log('Payment created successfully:', result);
 
                 // Mark payment as completed
                 const completeResponse = await fetch(`/api/payments/${result.id}/complete`, {
@@ -467,11 +511,11 @@ class CreatePayment {
                 }
             } else {
                 const error = await response.text();
-                console.error('Payment creation failed:', error); // Debug log
+                console.error('Payment creation failed:', error);
                 this.showError(null, error || 'Failed to process payment');
             }
         } catch (error) {
-            console.error('Payment processing error:', error); // Debug log
+            console.error('Payment processing error:', error);
             this.showError(null, 'Payment processing failed. Please try again.');
         } finally {
             this.setLoading(false);
@@ -484,6 +528,7 @@ class CreatePayment {
             setTimeout(resolve, 2000);
         });
     }
+
     getClassInfo(reservation, booking) {
         // Try the new DTO field name first
         if (reservation && reservation.classType) {
@@ -498,6 +543,7 @@ class CreatePayment {
         }
         return 'N/A';
     }
+
     getSeatInfo(reservation, booking) {
         // Try the new DTO field names first
         if (reservation && reservation.numberOfAdults !== undefined) {
@@ -544,6 +590,6 @@ class CreatePayment {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing CreatePayment...'); // Debug log
+    console.log('DOM loaded, initializing CreatePayment...');
     new CreatePayment();
 });
