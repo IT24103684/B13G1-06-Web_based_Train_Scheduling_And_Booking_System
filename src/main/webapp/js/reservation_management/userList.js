@@ -15,7 +15,6 @@ class UserReservationList {
     }
 
     checkAuthentication() {
-        // Use sessionStorage to match your booking system
         const session = sessionStorage.getItem('passengerSession');
         if (!session) {
             window.location.href = '/login';
@@ -42,7 +41,9 @@ class UserReservationList {
 
     showError(message) {
         const existingAlert = document.querySelector('.error-alert');
-        if (existingAlert) existingAlert.remove();
+        if (existingAlert) {
+            existingAlert.remove();
+        }
 
         const alert = document.createElement('div');
         alert.className = 'error-alert fixed top-4 right-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50';
@@ -56,12 +57,18 @@ class UserReservationList {
 
         document.body.appendChild(alert);
 
-        setTimeout(() => alert.remove(), 5000);
+        setTimeout(() => {
+            if (alert.parentElement) {
+                alert.remove();
+            }
+        }, 5000);
     }
 
     showSuccess(message) {
         const existingAlert = document.querySelector('.success-alert');
-        if (existingAlert) existingAlert.remove();
+        if (existingAlert) {
+            existingAlert.remove();
+        }
 
         const alert = document.createElement('div');
         alert.className = 'success-alert fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50 animate-pulse';
@@ -72,7 +79,9 @@ class UserReservationList {
 
         document.body.appendChild(alert);
 
-        setTimeout(() => alert.remove(), 5000);
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
     }
 
     async loadReservations() {
@@ -130,43 +139,22 @@ class UserReservationList {
         return `<span class="class-badge ${styleClass}">${displayName}</span>`;
     }
 
-    async cancelReservation(reservationId) {
-        if (!confirm('Are you sure you want to cancel this reservation? This will restore the seats to availability.')) {
-            return;
-        }
+    getStatusDisplayText(status) {
+        const statusMap = {
+            'PENDING': 'Pending',
+            'CANCELLED': 'Cancelled',
+            'COMPLETED': 'Completed'
+        };
+        return statusMap[status] || status;
+    }
 
-        const card = document.querySelector(`[data-reservation-id="${reservationId}"]`);
-        if (!card) return;
-
-        const cancelBtn = card.querySelector('.cancel-btn') || card.querySelector('.update-status-btn');
-        const originalText = cancelBtn?.innerHTML || 'Cancel';
-
-        if (cancelBtn) {
-            cancelBtn.disabled = true;
-            cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Cancelling...';
-        }
-
-        try {
-            const response = await fetch(`/api/reservations/${reservationId}/cancel`, {
-                method: 'PUT'
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                this.showSuccess('Reservation cancelled successfully! Seats have been restored.');
-                setTimeout(() => this.loadReservations(), 1000);
-            } else {
-                const error = await response.text();
-                this.showError(error || 'Failed to cancel reservation');
-            }
-        } catch (error) {
-            this.showError('Network error. Please try again.');
-        } finally {
-            if (cancelBtn) {
-                cancelBtn.disabled = false;
-                cancelBtn.innerHTML = originalText;
-            }
-        }
+    getStatusClass(status) {
+        const classes = {
+            'PENDING': 'bg-yellow-100 text-yellow-800',
+            'CANCELLED': 'bg-red-100 text-red-800',
+            'COMPLETED': 'bg-green-100 text-green-800'
+        };
+        return classes[status] || 'bg-gray-100 text-gray-800';
     }
 
     createReservationCard(reservation) {
@@ -296,8 +284,6 @@ class UserReservationList {
                     </button>
                     ` : ''}
 
-                    <!-- REMOVED CANCEL BUTTON - using dropdown instead -->
-
                     <button 
                         type="button" 
                         data-id="${reservation.id}" 
@@ -360,25 +346,6 @@ class UserReservationList {
         window.location.href = `/create-payment?reservationId=${reservationId}`;
     }
 
-
-    getStatusDisplayText(status) {
-        const statusMap = {
-            'PENDING': 'Pending',
-            'CANCELLED': 'Cancelled',
-            'COMPLETED': 'Completed'
-        };
-        return statusMap[status] || status;
-    }
-
-    getStatusClass(status) {
-        const classes = {
-            'PENDING': 'bg-yellow-100 text-yellow-800',
-            'CANCELLED': 'bg-red-100 text-red-800',
-            'COMPLETED': 'bg-green-100 text-green-800'
-        };
-        return classes[status] || 'bg-gray-100 text-gray-800';
-    }
-
     async handleUpdateStatus(reservationId, newStatus) {
         if (!reservationId || !newStatus) {
             this.showError('Invalid reservation or status.');
@@ -413,7 +380,64 @@ class UserReservationList {
     }
 
     async handleDeleteReservation(reservationId) {
-        if (!confirm('Are you sure you want to delete this reservation? This action cannot be undone.')) return;
+        const reservation = this.reservations.find(r => r.id == reservationId);
+        if (!reservation) return;
+
+        let confirmMessage = 'Are you sure you want to delete this reservation?';
+
+        // Add 24-hour expiration information for pending reservations
+        if (reservation.status === 'PENDING') {
+            confirmMessage += '\n\n📅 Your booking will be held for 24 hours. If you don\'t complete payment within 24 hours, your booking will be automatically cancelled and seats will be released to other customers.';
+
+            // Use custom modal for better UX
+            this.showCustomDeleteConfirmation(reservationId, confirmMessage);
+            return;
+        }
+
+        if (!confirm(confirmMessage)) return;
+
+        await this.proceedWithDeletion(reservationId);
+    }
+
+    // Enhanced delete confirmation with custom modal
+    showCustomDeleteConfirmation(reservationId, message) {
+        const modalHtml = `
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 mx-4">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-yellow-500 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-foreground">Delete Reservation</h3>
+                            <p class="text-sm text-muted-foreground mt-1 whitespace-pre-line">${message}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button 
+                            onclick="this.closest('.fixed').remove()" 
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="userReservationList.proceedWithDeletion(${reservationId})" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                            Delete Reservation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    // Extract deletion logic to separate method
+    async proceedWithDeletion(reservationId) {
+        // Remove any custom modals
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.remove());
 
         const card = document.querySelector(`[data-reservation-id="${reservationId}"]`);
         if (!card) return;
@@ -424,11 +448,21 @@ class UserReservationList {
         deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Deleting...';
 
         try {
-            const response = await fetch(`/api/reservations/${reservationId}`, { method: 'DELETE' });
+            const response = await fetch(`/api/reservations/${reservationId}`, {
+                method: 'DELETE'
+            });
 
             if (response.ok) {
-                this.showSuccess('Reservation deleted successfully!');
+                const reservation = this.reservations.find(r => r.id == reservationId);
+                if (reservation && reservation.status === 'PENDING') {
+                    this.showSuccess('Reservation deleted! Remember: Complete payment within 24 hours to keep your booking.');
+                } else {
+                    this.showSuccess('Reservation deleted successfully!');
+                }
+
                 card.remove();
+
+                // Check if no reservations left
                 if (document.querySelectorAll('[data-reservation-id]').length === 0) {
                     this.container.classList.add('hidden');
                     this.noReservationsState.classList.remove('hidden');
@@ -446,6 +480,7 @@ class UserReservationList {
     }
 }
 
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new UserReservationList();
+    window.userReservationList = new UserReservationList();
 });
