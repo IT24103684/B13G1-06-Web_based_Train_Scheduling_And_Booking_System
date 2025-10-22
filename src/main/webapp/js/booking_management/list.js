@@ -357,7 +357,22 @@ class AdminBookingList {
     }
 
     showDeleteModal(bookingId) {
+        const booking = this.bookings.find(b => b.id == bookingId);
+        if (!booking) return;
+
         this.deleteBookingId = bookingId;
+
+        let deleteMessage = 'Are you sure you want to delete this booking? This action cannot be undone.';
+
+        // Add information about seat restoration
+        deleteMessage += '\n\n💺 Seats will be immediately released for other customers.';
+
+        // Update the modal message
+        const messageElement = document.getElementById('deleteModalMessage');
+        if (messageElement) {
+            messageElement.textContent = deleteMessage;
+        }
+
         this.elements.deleteModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
