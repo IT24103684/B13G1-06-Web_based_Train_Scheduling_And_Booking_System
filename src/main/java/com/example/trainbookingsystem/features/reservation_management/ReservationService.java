@@ -64,11 +64,6 @@ public class ReservationService {
                         throw new RuntimeException("Only PENDING reservations can be cancelled");
                     }
 
-                    // RESTORE SEAT AVAILABILITY
-                    BookingModel booking = reservation.getBooking();
-                    Integer totalSeats = reservation.getTotalSeats();
-                    restoreSeatsToSchedule(booking.getSchedule(), booking.getClassType(), totalSeats);
-
                     // Update status to CANCELLED
                     reservation.setStatus("CANCELLED");
                     ReservationModel updatedReservation = reservationRepo.save(reservation);
@@ -138,9 +133,6 @@ public class ReservationService {
                     ") exceeds booking seat count (" + bookingModel.getSeatCount() + ")");
         }
 
-        // VALIDATE SEAT AVAILABILITY
-        validateSeatAvailability(bookingModel.getSchedule(), bookingModel.getClassType(), createDTO.getTotalSeats());
-
         if (reservationRepo.existsByBookingIdAndDeleteStatus(createDTO.getBookingId(), false)) {
             throw new RuntimeException("Reservation already exists for this booking");
         }
@@ -162,60 +154,10 @@ public class ReservationService {
 
         ReservationModel savedReservation = reservationRepo.save(reservation);
 
-        // UPDATE SCHEDULE AVAILABILITY
-        updateScheduleAvailability(bookingModel.getSchedule(), bookingModel.getClassType(), createDTO.getTotalSeats());
-
         return convertToResponseDTO(savedReservation);
     }
 
-    // ADD SEAT AVAILABILITY VALIDATION METHOD
-    private void validateSeatAvailability(ScheduleModel schedule, String classType, Integer seatCount) {
-        int availableSeats = getAvailableSeatsByClass(schedule, classType);
 
-        if (seatCount <= 0) {
-            throw new RuntimeException("Seat count must be greater than 0");
-        }
-
-        if (seatCount > availableSeats) {
-            throw new RuntimeException("Not enough seats available in " + classType + " class. Available: " + availableSeats);
-        }
-    }
-
-    private int getAvailableSeatsByClass(ScheduleModel schedule, String classType) {
-        switch (classType.toUpperCase()) {
-            case "ECONOMY":
-                return schedule.getAvailableEconomySeats();
-            case "BUSINESS":
-                return schedule.getAvailableBusinessSeats();
-            case "FIRST_CLASS":
-                return schedule.getAvailableFirstClassSeats();
-            case "LUXURY":
-                return schedule.getAvailableLuxurySeats();
-            default:
-                throw new RuntimeException("Invalid class type: " + classType);
-        }
-    }
-
-    private void updateScheduleAvailability(ScheduleModel schedule, String classType, Integer seatCount) {
-        switch (classType.toUpperCase()) {
-            case "ECONOMY":
-                schedule.setAvailableEconomySeats(schedule.getAvailableEconomySeats() - seatCount);
-                break;
-            case "BUSINESS":
-                schedule.setAvailableBusinessSeats(schedule.getAvailableBusinessSeats() - seatCount);
-                break;
-            case "FIRST_CLASS":
-                schedule.setAvailableFirstClassSeats(schedule.getAvailableFirstClassSeats() - seatCount);
-                break;
-            case "LUXURY":
-                schedule.setAvailableLuxurySeats(schedule.getAvailableLuxurySeats() - seatCount);
-                break;
-        }
-        scheduleRepo.save(schedule);
-    }
-
-    // UPDATE updateReservation method with seat validation
-    // UPDATE updateReservation method with seat validation
     public Optional<ReservationDTOS.ReservationResponseDTO> updateReservation(Long id, ReservationDTOS.UpdateReservationDTO updateDTO) {
         return reservationRepo.findByIdAndDeleteStatus(id, false)
                 .map(reservation -> {
@@ -234,12 +176,6 @@ public class ReservationService {
                             if (newTotalSeats > booking.getSeatCount()) {
                                 throw new RuntimeException("Reservation seat count (" + newTotalSeats +
                                         ") exceeds booking seat count (" + booking.getSeatCount() + ")");
-                            }
-
-                            // Validate seat availability for the difference
-                            int seatDifference = newTotalSeats - currentTotalSeats;
-                            if (seatDifference > 0) {
-                                validateSeatAvailability(booking.getSchedule(), booking.getClassType(), seatDifference);
                             }
                         }
                     }
@@ -267,16 +203,6 @@ public class ReservationService {
                     }
 
                     ReservationModel updatedReservation = reservationRepo.save(reservation);
-
-                    // UPDATE SCHEDULE AVAILABILITY IF SEATS CHANGED
-                    if (updateDTO.getNumOfAdultSeats() != null || updateDTO.getNumOfChildrenSeats() != null) {
-                        Integer newTotalSeats = updatedReservation.getTotalSeats();
-                        int seatDifference = newTotalSeats - currentTotalSeats;
-
-                        if (seatDifference != 0) {
-                            updateScheduleAvailability(booking.getSchedule(), booking.getClassType(), seatDifference);
-                        }
-                    }
 
                     return convertToResponseDTO(updatedReservation);
                 });
