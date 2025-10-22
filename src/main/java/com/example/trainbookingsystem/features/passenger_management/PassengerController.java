@@ -99,4 +99,41 @@ public class PassengerController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during login");
         }
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody PassengerDTOS.ForgotPasswordRequest request) {
+        try {
+            PassengerDTOS.PasswordResetResponse response = passengerService.forgotPassword(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing forgot password request");
+        }
+    }
+
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<?> verifyResetCode(@RequestBody PassengerDTOS.VerifyCodeRequest request) {
+        try {
+            PassengerDTOS.PasswordResetResponse response = passengerService.verifyResetCode(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error verifying reset code");
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody PassengerDTOS.ResetPasswordRequest request) {
+        try {
+            PassengerDTOS.PasswordResetResponse response = passengerService.resetPassword(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error resetting password");
+        }
+    }
 }
