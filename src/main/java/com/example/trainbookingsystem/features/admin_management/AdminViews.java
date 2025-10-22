@@ -29,5 +29,4 @@ public class AdminViews {
     public  String adminList(){
         return "admin_management/list";
     }
-
 }
