@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Feedbacks - RailSwift</title>
+    <title>My Reservations - RailSwift</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -58,57 +58,24 @@
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
-        .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
+        .class-badge {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
-        .star-rating {
-            display: flex;
-            flex-direction: row-reverse;
-            justify-content: flex-end;
-        }
-        .star-rating input {
-            display: none;
-        }
-        .star-rating label {
-            cursor: pointer;
-            width: 2rem;
-            font-size: 2rem;
-            color: #ddd;
-            transition: color 0.2s;
-        }
-        .star-rating input:checked ~ label {
-            color: #fbbf24;
-        }
-        .star-rating label:hover,
-        .star-rating label:hover ~ label {
-            color: #fbbf24;
-        }
+        .class-economy { background-color: #dcfce7; color: #166534; }
+        .class-business { background-color: #dbeafe; color: #1e40af; }
+        .class-first_class { background-color: #fef3c7; color: #92400e; }
+        .class-luxury { background-color: #fae8ff; color: #86198f; }
     </style>
 </head>
 <body class="min-h-screen bg-gradient train-pattern">
 <jsp:include page="../common/navbar.jsp"/>
 
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Feedbacks</h1>
-        <a
-                href="/create-feedback"
-                class="px-4 py-2 rounded-xl bg-black text-white text-sm font-medium shadow hover:bg-gray-800 transition"
-        >
-            Create Feedback
-        </a>
-    </div>
-
+<div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Loading State -->
     <div id="loadingState" class="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-8">
         <div class="animate-pulse space-y-6">
@@ -122,115 +89,32 @@
         </div>
     </div>
 
-    <!-- No Feedbacks State -->
-    <div id="noFeedbacksState" class="hidden bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-12 text-center">
+    <!-- No Reservations State -->
+    <div id="noReservationsState" class="hidden bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-12 text-center">
         <div class="mx-auto h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
-            <i class="fas fa-comment-alt text-muted-foreground text-3xl"></i>
+            <i class="fas fa-ticket-alt text-muted-foreground text-3xl"></i>
         </div>
-        <h2 class="text-2xl font-bold text-foreground mb-2">No Feedbacks Found</h2>
-        <p class="text-muted-foreground mb-6">You haven't submitted any feedback yet.</p>
-        <button onclick="window.location.href='/create-feedback'" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 transition">
-            <i class="fas fa-star mr-2"></i>
-            Submit Feedback
-        </button>
+        <h2 class="text-2xl font-bold text-foreground mb-2">No Reservations Found</h2>
+        <p class="text-muted-foreground mb-6">You haven't made any reservations yet.</p>
+        <a href="/schedules" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 transition">
+            <i class="fas fa-train mr-2"></i>
+            Book a Train
+        </a>
     </div>
 
-    <!-- Feedbacks Container -->
-    <div id="feedbacksContainer" class="hidden space-y-6">
+    <!-- Reservations Container -->
+    <div id="reservationsContainer" class="hidden space-y-6">
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-foreground">My Feedbacks</h1>
+            <h1 class="text-3xl font-bold text-foreground">My Reservations</h1>
             <button onclick="window.location.reload()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
                 <i class="fas fa-sync-alt mr-2"></i>
                 Refresh
             </button>
         </div>
-        <!-- Feedback cards will be injected here by JS -->
+        <!-- Reservation cards will be injected here by JS -->
     </div>
 </div>
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal-backdrop hidden">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 mx-4 sm:mx-0" @click.stop>
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-foreground">Edit Your Feedback</h2>
-            <button type="button" onclick="document.querySelector('#editModal').classList.add('hidden'); document.body.classList.remove('overflow-hidden');" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-        </div>
-
-        <form id="editForm" class="space-y-6">
-            <div class="space-y-2">
-                <label for="editTitle" class="text-sm font-medium text-foreground">Title *</label>
-                <input
-                        type="text"
-                        id="editTitle"
-                        name="title"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Enter feedback title"
-                        required
-                />
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-sm font-medium text-foreground">Rating *</label>
-                <div class="flex items-center space-x-4">
-                    <div class="star-rating">
-                        <input type="radio" id="star5" name="numOfStars" value="5" class="star-input" required />
-                        <label for="star5" title="5 stars">&#9733;</label>
-                        <input type="radio" id="star4" name="numOfStars" value="4" class="star-input" />
-                        <label for="star4" title="4 stars">&#9733;</label>
-                        <input type="radio" id="star3" name="numOfStars" value="3" class="star-input" />
-                        <label for="star3" title="3 stars">&#9733;</label>
-                        <input type="radio" id="star2" name="numOfStars" value="2" class="star-input" />
-                        <label for="star2" title="2 stars">&#9733;</label>
-                        <input type="radio" id="star1" name="numOfStars" value="1" class="star-input" />
-                        <label for="star1" title="1 star">&#9733;</label>
-                    </div>
-                    <div class="star-display flex text-yellow-400 text-2xl">
-                        <i class="fas fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <i class="far fa-star"></i>
-                        <i class="far fa-star"></i>
-                    </div>
-                    <input type="hidden" id="editNumOfStars" name="numOfStars" value="1" />
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label for="editMessage" class="text-sm font-medium text-foreground">Message *</label>
-                <textarea
-                        id="editMessage"
-                        name="message"
-                        rows="6"
-                        class="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none transition-all duration-200"
-                        placeholder="Share your detailed feedback..."
-                        required
-                ></textarea>
-            </div>
-
-            <div class="flex justify-end space-x-4 pt-4">
-                <button
-                        type="button"
-                        onclick="document.querySelector('#editModal').classList.add('hidden'); document.body.classList.remove('overflow-hidden');"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-6 py-2"
-                >
-                    <i class="fas fa-times mr-2"></i>
-                    Cancel
-                </button>
-                <button
-                        type="submit"
-                        id="saveEditBtn"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 py-2 min-w-[140px]"
-                >
-                    <span>Save Changes</span>
-                    <i class="fas fa-spinner fa-spin ml-2 hidden"></i>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script src="/js/feedback_management/userList.js"></script>
+<script src="/js/reservation_management/userList.js"></script>
 </body>
 </html>

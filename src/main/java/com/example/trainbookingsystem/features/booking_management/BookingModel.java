@@ -33,6 +33,9 @@ public class BookingModel {
     @Column(name = "seat_count", nullable = false)
     private Integer seatCount;
 
+    @Column(name = "class_type", nullable = false, length = 20)
+    private String classType; // ECONOMY, BUSINESS, FIRST_CLASS, LUXURY
+
     @Column(name = "additional_notes", columnDefinition = "TEXT")
     private String additionalNotes;
 
@@ -47,10 +50,11 @@ public class BookingModel {
 
     public BookingModel() {}
 
-    public BookingModel(PassengerModel passenger, ScheduleModel schedule,Integer seatCount, String additionalNotes) {
+    public BookingModel(PassengerModel passenger, ScheduleModel schedule, Integer seatCount, String classType, String additionalNotes) {
         this.passenger = passenger;
         this.schedule = schedule;
         this.seatCount = seatCount;
+        this.classType = classType;
         this.additionalNotes = additionalNotes;
         this.deleteStatus = false;
         this.createdAt = LocalDateTime.now();
@@ -83,6 +87,14 @@ public class BookingModel {
 
     public void setSeatCount(Integer seatCount) {
         this.seatCount = seatCount;
+    }
+
+    public String getClassType() {
+        return classType;
+    }
+
+    public void setClassType(String classType) {
+        this.classType = classType;
     }
 
     public PassengerModel getPassenger() {

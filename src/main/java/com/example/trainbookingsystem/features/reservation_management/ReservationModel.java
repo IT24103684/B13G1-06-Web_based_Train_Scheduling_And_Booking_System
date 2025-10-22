@@ -26,14 +26,8 @@ public class ReservationModel {
     @Column(name = "num_of_children_seats", nullable = false)
     private Integer numOfChildrenSeats;
 
-    @Column(name = "train_box_class", nullable = false)
-    private String trainBoxClass;
-
     @Column(name = "total_bill", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalBill;
-
-    @Column(name = "paid_method")
-    private String paidMethod;
 
     @Column(nullable = false)
     private String status;
@@ -46,13 +40,11 @@ public class ReservationModel {
 
     public ReservationModel() {}
 
-    public ReservationModel(BookingModel booking, Integer numOfAdultSeats, Integer numOfChildrenSeats, String trainBoxClass, BigDecimal totalBill, String paidMethod, String status) {
+    public ReservationModel(BookingModel booking, Integer numOfAdultSeats, Integer numOfChildrenSeats, BigDecimal totalBill, String status) {
         this.booking = booking;
         this.numOfAdultSeats = numOfAdultSeats;
         this.numOfChildrenSeats = numOfChildrenSeats;
-        this.trainBoxClass = trainBoxClass;
         this.totalBill = totalBill;
-        this.paidMethod = paidMethod;
         this.status = status;
         this.deleteStatus = false;
         this.createdAt = LocalDateTime.now();
@@ -70,6 +62,17 @@ public class ReservationModel {
         updatedAt = LocalDateTime.now();
     }
 
+    // FIXED: Add proper null handling
+    public Integer getTotalSeats() {
+        return (numOfAdultSeats != null ? numOfAdultSeats : 0) +
+                (numOfChildrenSeats != null ? numOfChildrenSeats : 0);
+    }
+
+    public String getClassType() {
+        return booking != null ? booking.getClassType() : null;
+    }
+
+    // ... rest of your existing getters and setters remain the same
     public Long getId() {
         return id;
     }
@@ -110,28 +113,12 @@ public class ReservationModel {
         this.numOfChildrenSeats = numOfChildrenSeats;
     }
 
-    public String getTrainBoxClass() {
-        return trainBoxClass;
-    }
-
-    public void setTrainBoxClass(String trainBoxClass) {
-        this.trainBoxClass = trainBoxClass;
-    }
-
     public BigDecimal getTotalBill() {
         return totalBill;
     }
 
     public void setTotalBill(BigDecimal totalBill) {
         this.totalBill = totalBill;
-    }
-
-    public String getPaidMethod() {
-        return paidMethod;
-    }
-
-    public void setPaidMethod(String paidMethod) {
-        this.paidMethod = paidMethod;
     }
 
     public String getStatus() {

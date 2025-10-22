@@ -143,6 +143,7 @@
             <!-- Booking Form -->
             <form id="bookingForm" class="space-y-6">
                 <input type="hidden" id="selectedSeatCount" name="selectedSeatCount" value="">
+                <input type="hidden" id="selectedClassType" name="classType" value="">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label for="seatCount" class="text-sm font-medium text-foreground">Number of Seats</label>
@@ -169,6 +170,23 @@
                             <i class="fas fa-rupee-sign mr-2 text-muted-foreground"></i>
                             <span id="totalAmount" class="font-semibold">Rs. 0</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Add this after the seat count selection and before additional notes -->
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-foreground">Class Selection</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="classSelection">
+                        <!-- Class options will be populated by JavaScript -->
+                    </div>
+                    <div class="error-message text-sm text-destructive hidden" id="classTypeError"></div>
+                </div>
+
+                <!-- Add this after the class selection -->
+                <div class="bg-muted/50 rounded-lg p-4">
+                    <h4 class="font-medium text-foreground mb-2">Seat Availability</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm" id="seatAvailability">
+                        <!-- Seat availability will be populated by JavaScript -->
                     </div>
                 </div>
 

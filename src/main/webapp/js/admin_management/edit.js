@@ -43,14 +43,34 @@ class AdminEdit {
     bindEvents() {
         this.elements.form.addEventListener('submit', (e) => this.handleSubmit(e));
 
-        const fields = ['name', 'contactNumber', 'description'];
+        const fields = ['name', 'contactNumber', 'description', 'role'];
         fields.forEach(field => {
             const input = document.getElementById(field);
             if (input) {
                 input.addEventListener('blur', () => this.validateField(field));
                 input.addEventListener('input', () => this.clearError(field));
+
+                // Add change listener for role to detect changes
+                if (field === 'role') {
+                    input.addEventListener('change', () => this.detectChanges());
+                } else {
+                    input.addEventListener('input', () => this.detectChanges());
+                }
             }
         });
+    }
+
+    detectChanges() {
+        const hasChanges = this.hasChanges();
+        const submitBtn = this.elements.submitBtn;
+
+        if (hasChanges) {
+            submitBtn.classList.remove('opacity-50');
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.classList.add('opacity-50');
+            submitBtn.disabled = true;
+        }
     }
 
     showState(stateName) {
@@ -81,6 +101,9 @@ class AdminEdit {
             this.populateForm(admin);
             this.showState('editForm');
 
+            // Initialize change detection
+            this.detectChanges();
+
         } catch (error) {
             this.showError(error.message);
         }
@@ -91,7 +114,7 @@ class AdminEdit {
         document.getElementById('email').value = admin.email || '';
         document.getElementById('contactNumber').value = admin.contactNumber || '';
         document.getElementById('description').value = admin.description || '';
-
+        document.getElementById('role').value = admin.role || 'ADMIN';
         this.elements.createdAt.textContent = this.formatDate(admin.createdAt);
         this.elements.updatedAt.textContent = this.formatDate(admin.updatedAt);
     }
@@ -100,6 +123,12 @@ class AdminEdit {
         const input = document.getElementById(fieldName);
         const errorDiv = input.parentElement.querySelector('.error-message');
         const value = input.value.trim();
+
+        // Role doesn't need validation beyond being selected
+        if (fieldName === 'role') {
+            this.hideFieldError(errorDiv);
+            return true;
+        }
 
         if (!value && fieldName !== 'description') {
             this.showFieldError(errorDiv, ${this.formatFieldName(fieldName)} is required);
@@ -146,7 +175,7 @@ class AdminEdit {
     }
 
     validateForm() {
-        const requiredFields = ['name', 'contactNumber'];
+        const requiredFields = ['name', 'contactNumber', 'role'];
         let isValid = true;
 
         requiredFields.forEach(field => {
@@ -165,16 +194,20 @@ class AdminEdit {
     }
 
     hasChanges() {
+        if (!this.originalData) return false;
+
         const currentData = {
             name: document.getElementById('name').value.trim(),
             contactNumber: document.getElementById('contactNumber').value.trim(),
-            description: document.getElementById('description').value.trim()
+            description: document.getElementById('description').value.trim(),
+            role: document.getElementById('role').value
         };
 
         return (
             currentData.name !== this.originalData.name ||
             currentData.contactNumber !== this.originalData.contactNumber ||
-            currentData.description !== (this.originalData.description || '')
+            currentData.description !== (this.originalData.description || '') ||
+            currentData.role !== this.originalData.role
         );
     }
 
@@ -198,7 +231,7 @@ class AdminEdit {
         }
 
         if (!this.hasChanges()) {
-            this.showError('No changes detected');
+            this.showError('No changes detected. Please modify at least one field to update.');
             return;
         }
 
@@ -208,7 +241,8 @@ class AdminEdit {
         const adminData = {
             name: formData.get('name').trim(),
             contactNumber: formData.get('contactNumber').trim(),
-            description: formData.get('description').trim() || null
+            description: formData.get('description').trim() || null,
+            role: formData.get('role')
         };
 
         try {
@@ -222,9 +256,12 @@ class AdminEdit {
 
             if (response.ok) {
                 const result = await response.json();
-                this.originalData = result;
-                this.elements.updatedAt.textContent = this.formatDate(result.updatedAt);
                 this.showSuccess('Admin updated successfully!');
+
+                // Redirect to list page after success message is shown
+                setTimeout(() => {
+                    window.location.href = '/admin-list'; // Your list page URL
+                }, 1200);
             } else {
                 const error = await response.text();
                 this.showError(error || 'Failed to update admin');

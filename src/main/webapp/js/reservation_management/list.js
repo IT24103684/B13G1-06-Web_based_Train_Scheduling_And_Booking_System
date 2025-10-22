@@ -224,30 +224,29 @@ class AdminReservationList {
             const formattedCreatedAt = reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A';
 
             return `
-            <tr class="border-b transition-colors hover:bg-muted/50">
-                <td class="p-4 align-middle">
-                    <div class="font-medium text-foreground">#${reservation.id}</div>
-                    <div class="text-sm text-muted-foreground">${formattedCreatedAt}</div>
-                </td>
-                <td class="p-4 align-middle">
-                    <div class="font-medium text-foreground">${passenger.firstName || ''} ${passenger.lastName || ''}</div>
-                    <div class="text-sm text-muted-foreground">${passenger.email || ''}</div>
-                </td>
-                <td class="p-4 align-middle">
-                    <div class="font-medium text-foreground">${schedule.trainName || 'N/A'}</div>
-                    <div class="text-sm text-muted-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
-                </td>
-                <td class="p-4 align-middle">
-                    <div class="text-sm text-foreground">Adults: ${reservation.numOfAdultSeats || 0}</div>
-                    <div class="text-sm text-foreground">Children: ${reservation.numOfChildrenSeats || 0}</div>
-                    <!-- FIX: Use classType instead of trainBoxClass -->
-                    <div class="text-sm text-muted-foreground">${reservation.classType || 'N/A'}</div>
-                </td>
-                <td class="p-4 align-middle">
-                    <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
-                </td>
-                <td class="p-4 align-middle">
-                    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                <tr class="border-b transition-colors hover:bg-muted/50">
+                    <td class="p-4 align-middle">
+                        <div class="font-medium text-foreground">#${reservation.id}</div>
+                        <div class="text-sm text-muted-foreground">${formattedCreatedAt}</div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="font-medium text-foreground">${passenger.firstName || ''} ${passenger.lastName || ''}</div>
+                        <div class="text-sm text-muted-foreground">${passenger.email || ''}</div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="font-medium text-foreground">${schedule.trainName || 'N/A'}</div>
+                        <div class="text-sm text-muted-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="text-sm text-foreground">Adults: ${reservation.numOfAdultSeats || 0}</div>
+                        <div class="text-sm text-foreground">Children: ${reservation.numOfChildrenSeats || 0}</div>
+                        <div class="text-sm text-muted-foreground">${reservation.trainBoxClass || 'N/A'}</div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                 this.getStatusClass(reservation.status)
             }">
                         ${reservation.status || 'N/A'}
@@ -361,6 +360,15 @@ class AdminReservationList {
         document.getElementById('editNumOfAdultSeats').value = reservation.numOfAdultSeats || 1;
         document.getElementById('editNumOfChildrenSeats').value = reservation.numOfChildrenSeats || 0;
         document.getElementById('editTotalBill').value = reservation.totalBill || 0;
+
+        // Update status dropdown with only allowed options
+        const statusSelect = document.getElementById('editStatus');
+        statusSelect.innerHTML = `
+        <option value="PENDING">Pending</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+    `;
+        statusSelect.value = reservation.status || 'PENDING';
 
         // Update status dropdown with only allowed options
         const statusSelect = document.getElementById('editStatus');

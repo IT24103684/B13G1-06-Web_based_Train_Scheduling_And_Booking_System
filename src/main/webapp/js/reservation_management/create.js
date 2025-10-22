@@ -10,6 +10,7 @@ class CreateReservation {
         this.loadingState = document.getElementById('loadingState');
         this.mainContent = document.getElementById('mainContent');
         this.bookingSeatCount = 0;
+        this.classType = null;
 
         this.init();
     }
@@ -22,12 +23,18 @@ class CreateReservation {
     }
 
     checkAuthentication() {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
+        const session = sessionStorage.getItem('passengerSession');
+        if (!session) {
             window.location.href = '/login';
             return;
         }
-        this.passengerId = parseInt(userId);
+
+        try {
+            const sessionData = JSON.parse(session);
+            this.passengerId = sessionData.id;
+        } catch (error) {
+            window.location.href = '/login';
+        }
     }
 
     getBookingIdFromUrl() {
@@ -47,7 +54,6 @@ class CreateReservation {
 
         const adultSeats = document.getElementById('numOfAdultSeats');
         const childSeats = document.getElementById('numOfChildrenSeats');
-        const trainBoxClass = document.getElementById('trainBoxClass');
 
         adultSeats.addEventListener('change', () => {
             this.clearError('numOfAdultSeats');
@@ -60,14 +66,6 @@ class CreateReservation {
             this.validateSeatDistribution();
             this.calculateTotal();
         });
-
-        trainBoxClass.addEventListener('change', () => {
-            this.clearError('trainBoxClass');
-            this.calculateTotal();
-        });
-
-        const paidMethod = document.getElementById('paidMethod');
-        paidMethod.addEventListener('change', () => this.clearError('paidMethod'));
     }
 
     async loadBookingData() {
@@ -78,8 +76,8 @@ class CreateReservation {
             if (response.ok) {
                 this.bookingData = await response.json();
                 this.displayBookingData();
-                this.autoPopulateSeats(); // Auto-populate seat selection
-                this.calculateTotal(); // Initialize total
+                this.autoPopulateSeats();
+                this.calculateTotal();
                 this.showLoading(false);
             } else {
                 this.showError(null, 'Booking not found');
@@ -96,34 +94,26 @@ class CreateReservation {
     }
 
     autoPopulateSeats() {
-        // Get seat count from booking data (preferred) or sessionStorage
         const seatCountFromBooking = this.bookingData.seatCount;
         const seatCountFromStorage = sessionStorage.getItem('bookingSeatCount');
 
         this.bookingSeatCount = seatCountFromBooking || parseInt(seatCountFromStorage) || 0;
 
         if (this.bookingSeatCount > 0) {
-            // Auto-fill adult seats with the total from booking (default: all adults)
             const adultSeatsSelect = document.getElementById('numOfAdultSeats');
             adultSeatsSelect.value = this.bookingSeatCount.toString();
 
-            // Set children seats to 0 by default
             const childSeatsSelect = document.getElementById('numOfChildrenSeats');
             childSeatsSelect.value = '0';
 
-            // Enable the seat selection to allow adjustments (CHANGED: removed disabled)
             adultSeatsSelect.disabled = false;
             childSeatsSelect.disabled = false;
 
-            // Add validation to ensure total seats match booking
             this.addSeatDistributionValidation();
-
-            // Add a note to inform the user
             this.addSeatSelectionNote();
         }
     }
 
-    // NEW METHOD: Add seat distribution validation
     addSeatDistributionValidation() {
         const adultSeatsSelect = document.getElementById('numOfAdultSeats');
         const childSeatsSelect = document.getElementById('numOfChildrenSeats');
@@ -132,12 +122,10 @@ class CreateReservation {
             this.validateSeatDistribution();
         };
 
-        // Add event listeners for real-time validation
         adultSeatsSelect.addEventListener('change', validateSeatDistribution);
         childSeatsSelect.addEventListener('change', validateSeatDistribution);
     }
 
-    // NEW METHOD: Validate seat distribution
     validateSeatDistribution() {
         const adultSeats = parseInt(document.getElementById('numOfAdultSeats').value) || 0;
         const childSeats = parseInt(document.getElementById('numOfChildrenSeats').value) || 0;
@@ -165,7 +153,6 @@ class CreateReservation {
     addSeatSelectionNote() {
         const adultSeatsContainer = document.getElementById('numOfAdultSeats').parentNode;
 
-        // Remove existing note if any
         const existingNote = adultSeatsContainer.querySelector('.seat-info-note');
         if (existingNote) {
             existingNote.remove();
@@ -183,7 +170,6 @@ class CreateReservation {
     displayBookingData() {
         const booking = this.bookingData;
 
-        // Display booking summary
         document.getElementById('bookingIdDisplay').textContent = `#${booking.id}`;
         document.getElementById('passengerName').textContent = `${booking.passenger.firstName} ${booking.passenger.lastName}`;
         document.getElementById('trainName').textContent = booking.schedule.trainName;
@@ -208,56 +194,44 @@ class CreateReservation {
         document.getElementById('toCity').textContent = booking.schedule.toCity;
         document.getElementById('seatCount').textContent = booking.seatCount;
         document.getElementById('additionalNotes').textContent = booking.additionalNotes || 'None';
+
+        // ADD CLASS TYPE DISPLAY
+        this.classType = booking.classType || 'ECONOMY';
+        document.getElementById('classTypeDisplay').textContent = this.classType.toLowerCase().replace('_', ' ');
     }
 
     calculateTotal() {
         const adultSeats = parseInt(document.getElementById('numOfAdultSeats').value) || 0;
         const childSeats = parseInt(document.getElementById('numOfChildrenSeats').value) || 0;
-        const trainBoxClass = document.getElementById('trainBoxClass').value;
 
-        if (!trainBoxClass) return;
+        const classType = this.classType || 'ECONOMY';
 
-        // Base prices per seat type
         const adultPriceMap = {
-            'Economy': 500,
-            'Business': 1200,
-            'First Class': 2000,
-            'Luxury': 3000
+            'ECONOMY': 500,
+            'BUSINESS': 750,
+            'FIRST_CLASS': 1000,
+            'LUXURY': 1500
         };
 
-        const childDiscount = 0.5; // 50% discount for children
-
-        const adultPrice = adultPriceMap[trainBoxClass] || 500;
+        const childDiscount = 0.5;
+        const adultPrice = adultPriceMap[classType] || 500;
         const childPrice = adultPrice * childDiscount;
 
         const total = (adultSeats * adultPrice) + (childSeats * childPrice);
-        document.getElementById('totalBill').textContent = `Rs. ${total.toLocaleString()}`;
+
+        const totalBillElement = document.getElementById('totalBill');
+        totalBillElement.textContent = `Rs. ${total.toLocaleString()}`;
+        totalBillElement.dataset.numericValue = total;
     }
 
     validateField(fieldName) {
         const input = document.getElementById(fieldName);
         const errorDiv = input.parentElement.querySelector('.error-message');
-        const value = input.value.trim();
 
         let isValid = true;
 
         if (fieldName === 'numOfAdultSeats' || fieldName === 'numOfChildrenSeats') {
-            // Seat distribution validation is handled separately
             isValid = this.validateSeatDistribution();
-        }
-
-        if (fieldName === 'trainBoxClass') {
-            if (!value) {
-                this.showError(errorDiv, 'Please select a train box class');
-                isValid = false;
-            }
-        }
-
-        if (fieldName === 'paidMethod') {
-            if (!value) {
-                this.showError(errorDiv, 'Please select payment method');
-                isValid = false;
-            }
         }
 
         if (isValid && errorDiv) {
@@ -270,13 +244,9 @@ class CreateReservation {
     validateForm() {
         let isValid = true;
 
-        // Validate seat distribution first
         if (!this.validateSeatDistribution()) {
             isValid = false;
         }
-
-        if (!this.validateField('trainBoxClass')) isValid = false;
-        if (!this.validateField('paidMethod')) isValid = false;
 
         return isValid;
     }
@@ -360,14 +330,15 @@ class CreateReservation {
         this.setLoading(true);
 
         const formData = new FormData(this.form);
+        const totalBillElement = document.getElementById('totalBill');
+        const totalBillValue = parseFloat(totalBillElement.dataset.numericValue) || 0;
+
         const reservationData = {
             bookingId: parseInt(this.bookingId),
             numOfAdultSeats: parseInt(formData.get('numOfAdultSeats')),
             numOfChildrenSeats: parseInt(formData.get('numOfChildrenSeats')) || 0,
-            trainBoxClass: formData.get('trainBoxClass'),
-            totalBill: parseFloat(document.getElementById('totalBill').textContent.replace(/[^\d.-]/g, '')),
-            paidMethod: formData.get('paidMethod'),
-            status: 'PENDING' // Default status
+            totalBill: totalBillValue,
+            status: 'PENDING'
         };
 
         try {
@@ -381,9 +352,15 @@ class CreateReservation {
 
             if (response.ok) {
                 const result = await response.json();
-                this.showSuccess('Reservation confirmed successfully! Redirecting to your reservations...');
+                this.showSuccess('Reservation confirmed successfully!');
+
+                sessionStorage.removeItem('bookingSeatCount');
+                sessionStorage.removeItem('bookingClassType');
+                sessionStorage.removeItem('bookingTotalAmount');
+
                 setTimeout(() => {
-                    window.location.href = '/my-reservations';
+                    // Redirect to payment page with reservationId as query param
+                    window.location.href = `/create-payment?reservationId=${result.id}`;
                 }, 2000);
             } else {
                 const error = await response.text();

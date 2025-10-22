@@ -19,12 +19,14 @@ class UserBookingList {
     }
 
     checkAuthentication() {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
+        const session = sessionStorage.getItem('passengerSession');
+        if (!session) {
             window.location.href = '/login';
             return;
         }
-        this.passengerId = parseInt(userId);
+
+        const sessionData = JSON.parse(session);
+        this.passengerId = sessionData.id;
     }
 
     showLoading(show) {
@@ -122,6 +124,21 @@ class UserBookingList {
         });
     }
 
+    getClassBadge(classType) {
+        const classStyles = {
+            'ECONOMY': 'class-economy',
+            'BUSINESS': 'class-business',
+            'FIRST_CLASS': 'class-first_class',
+            'LUXURY': 'class-luxury'
+        };
+
+        const className = classType || 'ECONOMY';
+        const styleClass = classStyles[className] || 'class-economy';
+        const displayName = className.toLowerCase().replace('_', ' ');
+
+        return `<span class="class-badge ${styleClass}">${displayName}</span>`;
+    }
+
     createBookingCard(booking) {
         const card = document.createElement('div');
         card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-6 border border-gray-200';
@@ -150,11 +167,16 @@ class UserBookingList {
                     <h3 class="text-lg font-bold text-foreground">Booking #${booking.id}</h3>
                     <p class="text-sm text-muted-foreground">Created on ${booking.createdAt ? new Date(booking.createdAt).toLocaleString() : 'N/A'}</p>
                 </div>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                <div class="text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
             booking.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
         }">
-                    ${booking.deleteStatus ? 'Deleted' : 'Active'}
-                </span>
+                        ${booking.deleteStatus ? 'Deleted' : 'Active'}
+                    </span>
+                    <div class="mt-1">
+                        ${this.getClassBadge(booking.classType)}
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -172,7 +194,11 @@ class UserBookingList {
                     <p class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</p>
                 </div>
                 <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Notes</h4>
+                    <h4 class="font-medium text-foreground">Booking Details</h4>
+                    <p class="text-sm">
+                        ${booking.seatCount || 1} seat${booking.seatCount !== 1 ? 's' : ''} • 
+                        ${this.getClassBadge(booking.classType)}
+                    </p>
                     <p class="text-sm italic">${booking.additionalNotes || 'None provided'}</p>
                 </div>
                 <div class="space-y-2">
@@ -189,7 +215,7 @@ class UserBookingList {
                     ${booking.deleteStatus ? 'disabled' : ''}
                 >
                     <i class="fas fa-edit mr-2"></i>
-                    Edit
+                    Edit Notes
                 </button>
                 <button 
                     type="button" 
@@ -223,7 +249,7 @@ class UserBookingList {
         const notesTextarea = document.getElementById('editAdditionalNotes');
         notesTextarea.value = booking.additionalNotes || '';
         this.editModal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden'); // Prevent background scroll
+        document.body.classList.add('overflow-hidden');
     }
 
     closeEditModal() {

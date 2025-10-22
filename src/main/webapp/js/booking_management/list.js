@@ -8,6 +8,7 @@ class AdminBookingList {
         this.elements = {
             searchInput: document.getElementById('searchInput'),
             dateFilter: document.getElementById('dateFilter'),
+            classFilter: document.getElementById('classFilter'),
             statusFilter: document.getElementById('statusFilter'),
             clearFilters: document.getElementById('clearFilters'),
             bookingTable: document.getElementById('bookingTable'),
@@ -35,6 +36,7 @@ class AdminBookingList {
     bindEvents() {
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
+        this.elements.classFilter.addEventListener('change', (e) => this.handleClassFilter(e.target.value));
         this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
         this.elements.clearFilters.addEventListener('click', () => this.clearFilters());
         this.elements.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteModal());
@@ -124,6 +126,10 @@ class AdminBookingList {
         this.applyFilters();
     }
 
+    handleClassFilter(classType) {
+        this.applyFilters();
+    }
+
     handleStatusFilter(status) {
         this.applyFilters();
     }
@@ -131,6 +137,7 @@ class AdminBookingList {
     applyFilters() {
         const searchTerm = this.elements.searchInput.value.toLowerCase().trim();
         const selectedDate = this.elements.dateFilter.value;
+        const selectedClass = this.elements.classFilter.value;
         const selectedStatus = this.elements.statusFilter.value;
 
         this.filteredBookings = this.bookings.filter(booking => {
@@ -144,16 +151,20 @@ class AdminBookingList {
                 passenger.firstName?.toLowerCase().includes(searchTerm) ||
                 passenger.lastName?.toLowerCase().includes(searchTerm) ||
                 passenger.email?.toLowerCase().includes(searchTerm) ||
-                passenger.contactNumber?.includes(searchTerm);
+                passenger.contactNumber?.includes(searchTerm) ||
+                booking.classType?.toLowerCase().includes(searchTerm);
 
             const matchesDate = !selectedDate ||
                 (schedule.date && schedule.date.startsWith(selectedDate));
+
+            const matchesClass = !selectedClass ||
+                booking.classType === selectedClass;
 
             const matchesStatus = !selectedStatus ||
                 (selectedStatus === 'active' && !booking.deleteStatus) ||
                 (selectedStatus === 'deleted' && booking.deleteStatus);
 
-            return matchesSearch && matchesDate && matchesStatus;
+            return matchesSearch && matchesDate && matchesClass && matchesStatus;
         });
 
         this.renderTable();
@@ -162,9 +173,25 @@ class AdminBookingList {
     clearFilters() {
         this.elements.searchInput.value = '';
         this.elements.dateFilter.value = '';
+        this.elements.classFilter.value = '';
         this.elements.statusFilter.value = '';
         this.filteredBookings = [...this.bookings];
         this.renderTable();
+    }
+
+    getClassBadge(classType) {
+        const classStyles = {
+            'ECONOMY': 'bg-green-100 text-green-800',
+            'BUSINESS': 'bg-blue-100 text-blue-800',
+            'FIRST_CLASS': 'bg-yellow-100 text-yellow-800',
+            'LUXURY': 'bg-purple-100 text-purple-800'
+        };
+
+        const className = classType || 'ECONOMY';
+        const styleClass = classStyles[className] || 'bg-gray-100 text-gray-800';
+        const displayName = className.toLowerCase().replace('_', ' ');
+
+        return `<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${styleClass}">${displayName}</span>`;
     }
 
     renderTable() {
@@ -204,11 +231,17 @@ class AdminBookingList {
                     </td>
                     <td class="p-4 align-middle">
                         <div class="font-medium text-foreground">${schedule.trainName || 'N/A'}</div>
-                        <div class="text-sm text-muted-foreground">${schedule.trainType || 'N/A'}</div>
+                        <div class="text-sm text-muted-foreground">
+                            ${schedule.trainType || 'N/A'} • 
+                            ${this.getClassBadge(booking.classType)}
+                        </div>
                     </td>
                     <td class="p-4 align-middle">
                         <div class="text-sm text-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
                         <div class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</div>
+                    </td>
+                    <td class="p-4 align-middle">
+                        <div class="text-sm font-medium text-foreground">${booking.seatCount || 1} seat${booking.seatCount !== 1 ? 's' : ''}</div>
                     </td>
                     <td class="p-4 align-middle">
                         <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -284,6 +317,8 @@ class AdminBookingList {
         document.getElementById('viewTrainType').textContent = schedule.trainType || 'N/A';
         document.getElementById('viewRoute').textContent = `${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}`;
         document.getElementById('viewSchedule').textContent = `${formattedDate} at ${formattedTime}`;
+        document.getElementById('viewClassType').textContent = booking.classType ? booking.classType.toLowerCase().replace('_', ' ') : 'economy';
+        document.getElementById('viewSeatCount').textContent = `${booking.seatCount || 1} seat${booking.seatCount !== 1 ? 's' : ''}`;
         document.getElementById('viewNotes').textContent = booking.additionalNotes || 'None provided';
         document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
             booking.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -467,17 +502,19 @@ class AdminBookingList {
                     schedule.trainName || 'N/A',
                     `${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}`,
                     `${formattedDate} ${formattedTime}`,
+                    booking.classType || 'ECONOMY',
+                    booking.seatCount || 1,
                     booking.deleteStatus ? 'Deleted' : 'Active'
                 ];
             });
 
             doc.autoTable({
-                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Schedule', 'Status']],
+                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Schedule', 'Class', 'Seats', 'Status']],
                 body: tableData,
                 startY: 40,
                 styles: {
-                    fontSize: 9,
-                    cellPadding: 3,
+                    fontSize: 8,
+                    cellPadding: 2,
                 },
                 headStyles: {
                     fillColor: [41, 41, 41],
@@ -485,13 +522,15 @@ class AdminBookingList {
                     fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: 20 },
-                    1: { cellWidth: 35 },
-                    2: { cellWidth: 40 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 45 },
-                    5: { cellWidth: 35 },
-                    6: { cellWidth: 25 }
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 30 },
+                    5: { cellWidth: 25 },
+                    6: { cellWidth: 20 },
+                    7: { cellWidth: 15 },
+                    8: { cellWidth: 20 }
                 }
             });
 

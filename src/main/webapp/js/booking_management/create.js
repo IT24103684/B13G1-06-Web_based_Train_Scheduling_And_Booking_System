@@ -3,7 +3,8 @@ class CreateBooking {
         this.scheduleId = null;
         this.passengerId = null;
         this.schedule = null;
-        this.pricePerSeat = 500; // Default price per seat
+        this.pricePerSeat = 500; // Default base price per seat
+        this.selectedClassType = null;
         this.form = document.getElementById('bookingForm');
         this.submitBtn = document.getElementById('submitBtn');
         this.buttonText = this.submitBtn.querySelector('.button-text');
@@ -48,10 +49,34 @@ class CreateBooking {
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
 
         const seatCountSelect = document.getElementById('seatCount');
-        seatCountSelect.addEventListener('change', () => this.calculateTotal());
+        seatCountSelect.addEventListener('change', () => {
+            this.calculateTotal();
+            this.clearError('seatCount');
+            this.validateSeatAvailability();
+        });
 
         const additionalNotes = document.getElementById('additionalNotes');
         additionalNotes.addEventListener('input', () => this.clearError('additionalNotes'));
+
+        // Bind class selection events
+        this.bindClassEvents();
+    }
+
+    bindClassEvents() {
+        document.addEventListener('change', (e) => {
+            if (e.target.name === 'classType') {
+                this.selectedClassType = e.target.value;
+                this.clearError('classType');
+                this.calculateTotal();
+                this.validateSeatAvailability();
+
+                // Update visual selection
+                document.querySelectorAll('.class-option').forEach(option => {
+                    option.classList.remove('selected-class');
+                });
+                e.target.closest('.class-option').classList.add('selected-class');
+            }
+        });
     }
 
     async loadScheduleData() {
@@ -62,6 +87,7 @@ class CreateBooking {
             if (response.ok) {
                 this.schedule = await response.json();
                 this.displayScheduleData();
+                this.displayClassOptions();
                 this.showLoading(false);
             } else {
                 this.showError(null, 'Schedule not found');
@@ -104,6 +130,93 @@ class CreateBooking {
         this.pricePerSeat = this.calculatePricePerSeat(schedule.trainType);
     }
 
+    displayClassOptions() {
+        const classSelection = document.getElementById('classSelection');
+        const seatAvailability = document.getElementById('seatAvailability');
+
+        const classes = [
+            { type: 'ECONOMY', name: 'Economy', price: this.pricePerSeat * 1.0, icon: 'fas fa-chair' },
+            { type: 'BUSINESS', name: 'Business', price: this.pricePerSeat * 1.5, icon: 'fas fa-briefcase' },
+            { type: 'FIRST_CLASS', name: 'First Class', price: this.pricePerSeat * 2.0, icon: 'fas fa-crown' },
+            { type: 'LUXURY', name: 'Luxury', price: this.pricePerSeat * 3.0, icon: 'fas fa-gem' }
+        ];
+
+        classSelection.innerHTML = classes.map(cls => {
+            const availableSeats = this.getAvailableSeatsByClass(cls.type);
+            const isAvailable = availableSeats > 0;
+
+            return `
+                <div class="class-option ${!isAvailable ? 'opacity-50' : ''}">
+                    <input 
+                        type="radio" 
+                        name="classType" 
+                        value="${cls.type}" 
+                        id="class-${cls.type}" 
+                        class="hidden"
+                        ${!isAvailable ? 'disabled' : ''}
+                    >
+                    <label 
+                        for="class-${cls.type}" 
+                        class="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all duration-200 hover:border-primary hover:bg-primary/5 ${!isAvailable ? 'cursor-not-allowed' : ''}"
+                    >
+                        <i class="${cls.icon} text-xl text-primary mb-2"></i>
+                        <div class="text-lg font-semibold text-foreground">${cls.name}</div>
+                        <div class="text-sm text-muted-foreground mt-1">Rs. ${Math.round(cls.price)}</div>
+                        <div class="text-xs mt-2 ${!isAvailable ? 'text-destructive' : 'text-green-600'}">
+                            ${!isAvailable ? 'Sold Out' : `${availableSeats} seats left`}
+                        </div>
+                    </label>
+                </div>
+            `;
+        }).join('');
+
+        // Update seat availability display
+        seatAvailability.innerHTML = classes.map(cls => {
+            const availableSeats = this.getAvailableSeatsByClass(cls.type);
+            return `
+                <div class="text-center p-3 bg-white rounded-lg border">
+                    <div class="font-medium text-foreground">${cls.name}</div>
+                    <div class="text-sm ${availableSeats === 0 ? 'text-destructive' : availableSeats < 10 ? 'text-orange-500' : 'text-green-600'}">
+                        ${availableSeats} available
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add CSS for selected class
+        const style = document.createElement('style');
+        style.textContent = `
+            .class-option.selected-class label {
+                border-color: hsl(222.2 47.4% 11.2%);
+                background-color: hsl(222.2 47.4% 11.2%);
+                color: hsl(210 40% 98%);
+            }
+            .class-option input:checked + label {
+                border-color: hsl(222.2 47.4% 11.2%);
+                background-color: hsl(222.2 47.4% 11.2%);
+                color: hsl(210 40% 98%);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    getAvailableSeatsByClass(classType) {
+        if (!this.schedule) return 0;
+
+        switch (classType) {
+            case 'ECONOMY':
+                return this.schedule.availableEconomySeats || 0;
+            case 'BUSINESS':
+                return this.schedule.availableBusinessSeats || 0;
+            case 'FIRST_CLASS':
+                return this.schedule.availableFirstClassSeats || 0;
+            case 'LUXURY':
+                return this.schedule.availableLuxurySeats || 0;
+            default:
+                return 0;
+        }
+    }
+
     calculatePricePerSeat(trainType) {
         const basePrices = {
             'Express': 800,
@@ -116,18 +229,72 @@ class CreateBooking {
 
     calculateTotal() {
         const seatCount = document.getElementById('seatCount').value;
-        const totalAmount = seatCount ? seatCount * this.pricePerSeat : 0;
-        document.getElementById('totalAmount').textContent = `Rs. ${totalAmount.toLocaleString()}`;
+        const classType = this.selectedClassType;
+
+        if (!seatCount || !classType) {
+            document.getElementById('totalAmount').textContent = 'Rs. 0';
+            return;
+        }
+
+        const basePrice = this.pricePerSeat;
+        let multiplier = 1.0;
+
+        switch (classType) {
+            case 'BUSINESS':
+                multiplier = 1.5;
+                break;
+            case 'FIRST_CLASS':
+                multiplier = 2.0;
+                break;
+            case 'LUXURY':
+                multiplier = 3.0;
+                break;
+        }
+
+        const totalAmount = seatCount * basePrice * multiplier;
+        document.getElementById('totalAmount').textContent = `Rs. ${Math.round(totalAmount).toLocaleString()}`;
+        document.getElementById('selectedClassType').value = classType;
+    }
+
+    validateSeatAvailability() {
+        if (!this.selectedClassType) return true;
+
+        const seatCount = parseInt(document.getElementById('seatCount').value);
+        const availableSeats = this.getAvailableSeatsByClass(this.selectedClassType);
+
+        if (seatCount > availableSeats) {
+            this.showError(document.getElementById('classTypeError'),
+                `Only ${availableSeats} seats available in ${this.selectedClassType} class`);
+            return false;
+        }
+
+        this.clearError('classType');
+        return true;
     }
 
     validateField(fieldName) {
         const input = document.getElementById(fieldName);
-        const errorDiv = input.parentElement.querySelector('.error-message');
-        const value = input.value.trim();
+        const errorDiv = input ? input.parentElement.querySelector('.error-message') :
+            document.getElementById(fieldName + 'Error');
+        let value;
+
+        if (fieldName === 'classType') {
+            value = this.selectedClassType;
+            if (!value) {
+                this.showError(document.getElementById('classTypeError'), 'Please select a class');
+                return false;
+            }
+        } else {
+            value = input ? input.value.trim() : '';
+        }
 
         if (fieldName === 'seatCount') {
             if (!value) {
                 this.showError(errorDiv, 'Please select number of seats');
+                return false;
+            }
+            if (value < 1 || value > 6) {
+                this.showError(errorDiv, 'Please select between 1-6 seats');
                 return false;
             }
         }
@@ -146,13 +313,12 @@ class CreateBooking {
     validateForm() {
         let isValid = true;
 
-        if (!this.validateField('seatCount')) {
-            isValid = false;
-        }
+        if (!this.validateField('seatCount')) isValid = false;
+        if (!this.validateField('classType')) isValid = false;
+        if (!this.validateField('additionalNotes')) isValid = false;
 
-        if (!this.validateField('additionalNotes')) {
-            isValid = false;
-        }
+        // Additional seat availability validation
+        if (!this.validateSeatAvailability()) isValid = false;
 
         return isValid;
     }
@@ -161,7 +327,9 @@ class CreateBooking {
         if (errorDiv) {
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
-            errorDiv.previousElementSibling.classList.add('border-destructive');
+            if (errorDiv.previousElementSibling && errorDiv.previousElementSibling.classList) {
+                errorDiv.previousElementSibling.classList.add('border-destructive');
+            }
             return;
         }
 
@@ -192,15 +360,24 @@ class CreateBooking {
     hideError(errorDiv) {
         if (errorDiv) {
             errorDiv.classList.add('hidden');
-            errorDiv.previousElementSibling.classList.remove('border-destructive');
+            if (errorDiv.previousElementSibling && errorDiv.previousElementSibling.classList) {
+                errorDiv.previousElementSibling.classList.remove('border-destructive');
+            }
         }
     }
 
     clearError(fieldName) {
-        const input = document.getElementById(fieldName);
-        const errorDiv = input.parentElement.querySelector('.error-message');
-        if (errorDiv) {
-            this.hideError(errorDiv);
+        if (fieldName === 'classType') {
+            const errorDiv = document.getElementById('classTypeError');
+            if (errorDiv) {
+                this.hideError(errorDiv);
+            }
+        } else {
+            const input = document.getElementById(fieldName);
+            const errorDiv = input.parentElement.querySelector('.error-message');
+            if (errorDiv) {
+                this.hideError(errorDiv);
+            }
         }
     }
 
@@ -237,11 +414,13 @@ class CreateBooking {
 
         const formData = new FormData(this.form);
         const seatCount = parseInt(formData.get('seatCount'));
+        const classType = formData.get('classType');
 
         const bookingData = {
             passengerId: this.passengerId,
             scheduleId: parseInt(this.scheduleId),
-            seatCount: seatCount, // This will be stored in booking
+            seatCount: seatCount,
+            classType: classType,
             additionalNotes: formData.get('additionalNotes').trim() || null
         };
 
@@ -258,9 +437,10 @@ class CreateBooking {
                 const result = await response.json();
                 this.showSuccess('Booking created successfully! Redirecting to reservation...');
 
-                // Store seat count in sessionStorage for reservation page
+                // Store booking details for reservation page
                 sessionStorage.setItem('bookingSeatCount', seatCount.toString());
-                sessionStorage.setItem('bookingTotalAmount', (seatCount * this.pricePerSeat).toString());
+                sessionStorage.setItem('bookingClassType', classType);
+                sessionStorage.setItem('bookingTotalAmount', (seatCount * this.pricePerSeat * this.getClassMultiplier(classType)).toString());
 
                 setTimeout(() => {
                     window.location.href = '/create-reservation?bookingId=' + result.id;
@@ -273,6 +453,15 @@ class CreateBooking {
             this.showError(null, 'Network error. Please try again.');
         } finally {
             this.setLoading(false);
+        }
+    }
+
+    getClassMultiplier(classType) {
+        switch (classType) {
+            case 'BUSINESS': return 1.5;
+            case 'FIRST_CLASS': return 2.0;
+            case 'LUXURY': return 3.0;
+            default: return 1.0;
         }
     }
 

@@ -115,8 +115,15 @@ class AdminCreate {
             }
         }
 
+        const roleValue = document.getElementById('role').value;
+        if (!roleValue) {
+            this.showError(document.querySelector('#role + .error-message'), "Role is required");
+            isValid = false;
+        }
+
         return isValid;
     }
+
 
     setLoading(loading) {
         if (loading) {
@@ -140,14 +147,16 @@ class AdminCreate {
         this.setLoading(true);
 
         const formData = new FormData(this.form);
+
+        const roleValue = formData.get('role') || "STAFF";
+
         const adminData = {
             name: formData.get('name').trim(),
             email: formData.get('email').trim(),
             password: formData.get('password'),
             contactNumber: formData.get('contactNumber').trim(),
-            description: formData.get('description').trim() || null
-        };
-
+            description: formData.get('description').trim() || null,
+            role: roleValue        };
         try {
             const response = await fetch('/api/admins', {
                 method: 'POST',
