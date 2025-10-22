@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -48,12 +49,23 @@ public class FeedbackController {
         }
     }
 
+
+    @GetMapping("/deleted")
+    public ResponseEntity<?> getDeletedFeedbacks() {
+        try {
+            List<FeedbackDTOS.FeedbackResponseDTO> deletedFeedbacks = feedbackService.getDeletedFeedbacks();
+            return ResponseEntity.ok(deletedFeedbacks);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving deleted feedbacks");
+        }
+    }
+
     @PostMapping
     public ResponseEntity<?> createFeedback(@RequestBody FeedbackDTOS.CreateFeedbackDTO createDTO) {
         try {
             FeedbackDTOS.FeedbackResponseDTO feedback = feedbackService.createFeedback(createDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(feedback);
-        } catch (RuntimeException e) {
+        } catch (FeedbackService.FeedbackException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating feedback");
@@ -69,22 +81,49 @@ public class FeedbackController {
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Feedback not found");
             }
+        } catch (FeedbackService.FeedbackException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating feedback");
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteFeedback(@PathVariable Long id) {
+    public ResponseEntity<?> deleteFeedback(@PathVariable Long id,
+                                            @RequestParam(defaultValue = "false") boolean hardDelete) {
         try {
-            boolean deleted = feedbackService.deleteFeedback(id);
+            boolean deleted = feedbackService.deleteFeedback(id, hardDelete);
             if (deleted) {
-                return ResponseEntity.ok("Feedback deleted successfully");
+                String message = hardDelete ? "Feedback permanently deleted" : "Feedback soft deleted successfully";
+                return ResponseEntity.ok(message);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Feedback not found");
             }
+        } catch (FeedbackService.FeedbackException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting feedback");
+        }
+    }
+
+
+    @DeleteMapping("/soft/{id}")
+    public ResponseEntity<?> deleteFeedback(@PathVariable Long id) {
+        return deleteFeedback(id, false);
+    }
+
+
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restoreFeedback(@PathVariable Long id) {
+        try {
+            boolean restored = feedbackService.restoreFeedback(id);
+            if (restored) {
+                return ResponseEntity.ok("Feedback restored successfully");
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Deleted feedback not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error restoring feedback");
         }
     }
 }
