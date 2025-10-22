@@ -33,6 +33,9 @@ class AdminReservationList {
     }
 
     bindEvents() {
+        // Update status filter options first
+        this.updateStatusFilterOptions();
+
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
         this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
@@ -101,6 +104,16 @@ class AdminReservationList {
         }
     }
 
+    // NEW METHOD: Update status filter options
+    updateStatusFilterOptions() {
+        this.elements.statusFilter.innerHTML = `
+        <option value="">All Status</option>
+        <option value="PENDING">Pending</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+    `;
+    }
+
     showState(stateName) {
         Object.keys(this.elements).forEach(key => {
             if (key.endsWith('State') || key === 'reservationTable') {
@@ -160,8 +173,7 @@ class AdminReservationList {
                 schedule.trainName?.toLowerCase().includes(searchTerm) ||
                 schedule.fromCity?.toLowerCase().includes(searchTerm) ||
                 schedule.toCity?.toLowerCase().includes(searchTerm) ||
-                reservation.trainBoxClass?.toLowerCase().includes(searchTerm) ||
-                reservation.paidMethod?.toLowerCase().includes(searchTerm);
+                reservation.trainBoxClass?.toLowerCase().includes(searchTerm);
 
             const matchesStatus = !selectedStatus || reservation.status === selectedStatus;
 
@@ -212,71 +224,72 @@ class AdminReservationList {
             const formattedCreatedAt = reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A';
 
             return `
-                <tr class="border-b transition-colors hover:bg-muted/50">
-                    <td class="p-4 align-middle">
-                        <div class="font-medium text-foreground">#${reservation.id}</div>
-                        <div class="text-sm text-muted-foreground">${formattedCreatedAt}</div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <div class="font-medium text-foreground">${passenger.firstName || ''} ${passenger.lastName || ''}</div>
-                        <div class="text-sm text-muted-foreground">${passenger.email || ''}</div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <div class="font-medium text-foreground">${schedule.trainName || 'N/A'}</div>
-                        <div class="text-sm text-muted-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <div class="text-sm text-foreground">Adults: ${reservation.numOfAdultSeats || 0}</div>
-                        <div class="text-sm text-foreground">Children: ${reservation.numOfChildrenSeats || 0}</div>
-                        <div class="text-sm text-muted-foreground">${reservation.trainBoxClass || 'N/A'}</div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
-                        <div class="text-sm text-muted-foreground">${reservation.paidMethod || 'N/A'}</div>
-                    </td>
-                    <td class="p-4 align-middle">
-                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            <tr class="border-b transition-colors hover:bg-muted/50">
+                <td class="p-4 align-middle">
+                    <div class="font-medium text-foreground">#${reservation.id}</div>
+                    <div class="text-sm text-muted-foreground">${formattedCreatedAt}</div>
+                </td>
+                <td class="p-4 align-middle">
+                    <div class="font-medium text-foreground">${passenger.firstName || ''} ${passenger.lastName || ''}</div>
+                    <div class="text-sm text-muted-foreground">${passenger.email || ''}</div>
+                </td>
+                <td class="p-4 align-middle">
+                    <div class="font-medium text-foreground">${schedule.trainName || 'N/A'}</div>
+                    <div class="text-sm text-muted-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
+                </td>
+                <td class="p-4 align-middle">
+                    <div class="text-sm text-foreground">Adults: ${reservation.numOfAdultSeats || 0}</div>
+                    <div class="text-sm text-foreground">Children: ${reservation.numOfChildrenSeats || 0}</div>
+                    <!-- FIX: Use classType instead of trainBoxClass -->
+                    <div class="text-sm text-muted-foreground">${reservation.classType || 'N/A'}</div>
+                </td>
+                <td class="p-4 align-middle">
+                    <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
+                </td>
+                <td class="p-4 align-middle">
+                    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                 this.getStatusClass(reservation.status)
             }">
-                            ${reservation.status || 'N/A'}
-                        </span>
-                    </td>
-                    <td class="p-4 align-middle text-right">
-                        <div class="flex items-center justify-end space-x-2">
-                            <button 
-                                class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="View Reservation"
-                            >
-                                <i class="fas fa-eye text-primary"></i>
-                            </button>
-                            <button 
-                                class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="Edit Reservation"
-                            >
-                                <i class="fas fa-edit text-primary"></i>
-                            </button>
-                            <button 
-                                class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="Delete Reservation"
-                            >
-                                <i class="fas fa-trash text-destructive"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+                        ${reservation.status || 'N/A'}
+                    </span>
+                </td>
+                <td class="p-4 align-middle text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                        <button 
+                            class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            data-reservation-id="${reservation.id}"
+                            title="View Reservation"
+                        >
+                            <i class="fas fa-eye text-primary"></i>
+                        </button>
+                        <button 
+                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            data-reservation-id="${reservation.id}"
+                            title="Edit Reservation"
+                        >
+                            <i class="fas fa-edit text-primary"></i>
+                        </button>
+                        <button 
+                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            data-reservation-id="${reservation.id}"
+                            title="Delete Reservation"
+                        >
+                            <i class="fas fa-trash text-destructive"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
         }).join('');
     }
 
     getStatusClass(status) {
         const classes = {
             'PENDING': 'bg-yellow-100 text-yellow-800',
-            'CONFIRMED': 'bg-green-100 text-green-800',
+            'CONFIRMED': 'bg-blue-100 text-blue-800',
             'CANCELLED': 'bg-red-100 text-red-800',
-            'COMPLETED': 'bg-blue-100 text-blue-800'
+            'PAID': 'bg-green-100 text-green-800',
+            'COMPLETED': 'bg-purple-100 text-purple-800'
         };
         return classes[status] || 'bg-gray-100 text-gray-800';
     }
@@ -320,9 +333,9 @@ class AdminReservationList {
         document.getElementById('viewBookingNotes').textContent = booking.additionalNotes || 'None provided';
         document.getElementById('viewAdultSeats').textContent = reservation.numOfAdultSeats || 0;
         document.getElementById('viewChildSeats').textContent = reservation.numOfChildrenSeats || 0;
-        document.getElementById('viewTrainBoxClass').textContent = reservation.trainBoxClass || 'N/A';
+        // FIX: Use classType instead of trainBoxClass
+        document.getElementById('viewTrainBoxClass').textContent = reservation.classType || 'N/A';
         document.getElementById('viewTotalBill').textContent = `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`;
-        document.getElementById('viewPaidMethod').textContent = reservation.paidMethod || 'N/A';
         document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${this.getStatusClass(reservation.status)}`;
         document.getElementById('viewStatus').textContent = reservation.status || 'N/A';
         document.getElementById('viewCreatedAt').textContent = formattedCreatedAt;
@@ -347,12 +360,18 @@ class AdminReservationList {
         // Populate form fields
         document.getElementById('editNumOfAdultSeats').value = reservation.numOfAdultSeats || 1;
         document.getElementById('editNumOfChildrenSeats').value = reservation.numOfChildrenSeats || 0;
-        document.getElementById('editTrainBoxClass').value = reservation.trainBoxClass || 'Economy';
         document.getElementById('editTotalBill').value = reservation.totalBill || 0;
-        document.getElementById('editPaidMethod').value = reservation.paidMethod || 'CREDIT_CARD';
-        document.getElementById('editStatus').value = reservation.status || 'PENDING';
 
-        // Calculate total bill
+        // Update status dropdown with only allowed options
+        const statusSelect = document.getElementById('editStatus');
+        statusSelect.innerHTML = `
+        <option value="PENDING">Pending</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="COMPLETED">Completed</option>
+    `;
+        statusSelect.value = reservation.status || 'PENDING';
+
+        // Calculate total bill (if needed)
         this.calculateTotalBill();
 
         this.elements.editModal.classList.remove('hidden');
@@ -429,7 +448,6 @@ class AdminReservationList {
             numOfChildrenSeats: parseInt(formData.get('numOfChildrenSeats')) || 0,
             trainBoxClass: formData.get('trainBoxClass'),
             totalBill: parseFloat(formData.get('totalBill')) || 0,
-            paidMethod: formData.get('paidMethod'),
             status: formData.get('status')
         };
 
@@ -552,15 +570,14 @@ class AdminReservationList {
                     schedule.trainName || 'N/A',
                     `${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}`,
                     `${reservation.numOfAdultSeats || 0}A/${reservation.numOfChildrenSeats || 0}C`,
-                    reservation.trainBoxClass || 'N/A',
+                    reservation.classType || 'N/A',
                     `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`,
-                    reservation.paidMethod || 'N/A',
                     reservation.status || 'N/A'
                 ];
             });
 
             doc.autoTable({
-                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Seats', 'Class', 'Amount', 'Payment', 'Status']],
+                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Seats', 'Class', 'Amount', 'Status']],
                 body: tableData,
                 startY: 40,
                 styles: {
@@ -581,8 +598,7 @@ class AdminReservationList {
                     5: { cellWidth: 25 },
                     6: { cellWidth: 25 },
                     7: { cellWidth: 30 },
-                    8: { cellWidth: 30 },
-                    9: { cellWidth: 25 }
+                    8: { cellWidth: 25 }
                 }
             });
 
