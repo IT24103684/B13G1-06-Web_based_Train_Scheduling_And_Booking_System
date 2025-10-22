@@ -224,10 +224,12 @@ class UserFeedbackList {
         this.editFeedbackId = feedback.id;
         document.getElementById('editTitle').value = feedback.title || '';
         document.getElementById('editMessage').value = feedback.message || '';
-        document.getElementById('editNumOfStars').value = feedback.numOfStars || 1;
-        this.updateStarRating(feedback.numOfStars || 1);
+
+        const rating = feedback.numOfStars || 1;
+        this.setStarRating(rating);
+
         this.editModal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden'); // Prevent background scroll
+        document.body.classList.add('overflow-hidden');
     }
 
     closeEditModal() {
@@ -253,16 +255,43 @@ class UserFeedbackList {
             }
         });
 
-        // Handle star rating
+        // Handle star rating - both input and display
         const starInputs = document.querySelectorAll('.star-input');
+        const starDisplay = document.querySelectorAll('.star-display i');
+
+        // Sync radio buttons with visual stars
         starInputs.forEach(input => {
             input.addEventListener('change', () => {
-                this.updateStarRating(parseInt(input.value));
+                const rating = parseInt(input.value);
+                this.updateStarRating(rating);
+                document.getElementById('editNumOfStars').value = rating;
+            });
+        });
+
+        // Make visual stars clickable to set rating
+        starDisplay.forEach((star, index) => {
+            star.addEventListener('click', () => {
+                const rating = index + 1;
+                this.setStarRating(rating);
             });
         });
 
         // Handle form submit
         this.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
+    }
+
+    setStarRating(rating) {
+        // Update the radio buttons
+        const starInput = document.querySelector(`.star-input[value="${rating}"]`);
+        if (starInput) {
+            starInput.checked = true;
+        }
+
+        // Update the hidden input
+        document.getElementById('editNumOfStars').value = rating;
+
+        // Update the visual display
+        this.updateStarRating(rating);
     }
 
     updateStarRating(rating) {
