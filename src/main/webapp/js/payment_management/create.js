@@ -50,16 +50,19 @@ class CreatePayment {
             this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         }
 
+        // Payment method selection
         const paymentOptions = document.querySelectorAll('.payment-method-option');
         paymentOptions.forEach(option => {
             option.addEventListener('click', () => this.selectPaymentMethod(option));
         });
 
+        // Card number formatting
         const cardNumber = document.getElementById('cardNumber');
         if (cardNumber) {
             cardNumber.addEventListener('input', (e) => this.formatCardNumber(e.target));
         }
 
+        // CVV formatting
         const cvv = document.getElementById('cvv');
         if (cvv) {
             cvv.addEventListener('input', (e) => this.formatCVV(e.target));
@@ -67,34 +70,34 @@ class CreatePayment {
     }
 
     selectPaymentMethod(option) {
-
+        // Remove selection from all options
         document.querySelectorAll('.payment-method-option').forEach(opt => {
             opt.classList.remove('selected');
             const dot = opt.querySelector('.h-3.w-3');
             if (dot) dot.classList.add('hidden');
         });
 
-
+        // Add selection to clicked option
         option.classList.add('selected');
         const dot = option.querySelector('.h-3.w-3');
         if (dot) dot.classList.remove('hidden');
 
-
+        // Set the payment method value
         this.selectedPaymentMethod = option.dataset.method;
         const paymentMethodInput = document.getElementById('paymentMethod');
         if (paymentMethodInput) {
             paymentMethodInput.value = this.selectedPaymentMethod;
         }
 
-
+        // Clear any previous error
         this.clearError('paymentMethod');
 
-
+        // Show relevant payment details
         this.showPaymentDetails(this.selectedPaymentMethod);
     }
 
     showPaymentDetails(method) {
-
+        // Hide all payment detail sections
         const paymentDetails = document.getElementById('paymentDetails');
         const cardFields = document.getElementById('cardFields');
         const upiFields = document.getElementById('upiFields');
@@ -105,7 +108,7 @@ class CreatePayment {
         if (upiFields) upiFields.classList.add('hidden');
         if (netBankingFields) netBankingFields.classList.add('hidden');
 
-
+        // Show the relevant section
         if (paymentDetails) {
             paymentDetails.classList.remove('hidden');
         }
@@ -176,7 +179,7 @@ class CreatePayment {
 
     displayReservationData() {
         if (!this.reservationData) {
-            console.error('No reservation data available'); // Debug log
+            console.error('No reservation data available');
             return;
         }
 
@@ -185,15 +188,16 @@ class CreatePayment {
         const schedule = booking.schedule || {};
         const passenger = booking.passenger || {};
 
-        console.log('Displaying reservation data:', reservation); // Debug log
+        console.log('Displaying reservation data:', reservation);
+        console.log('Booking data:', booking); // Debug log to check booking structure
 
-
+        // Display reservation summary
         this.setElementText('reservationIdDisplay', `#${reservation.id}`);
         this.setElementText('passengerName', `${passenger.firstName || ''} ${passenger.lastName || ''}`);
         this.setElementText('trainName', schedule.trainName || 'N/A');
         this.setElementText('trainType', schedule.trainType || 'N/A');
 
-
+        // Format and display date
         let formattedDate = 'N/A';
         let formattedTime = 'N/A';
 
@@ -213,7 +217,6 @@ class CreatePayment {
 
         if (schedule.time) {
             try {
-
                 const timeString = schedule.time.includes('T') ? schedule.time : `2000-01-01T${schedule.time}`;
                 formattedTime = new Date(timeString).toLocaleTimeString('en-US', {
                     hour: '2-digit',
@@ -234,7 +237,9 @@ class CreatePayment {
         const seatDetails = `${reservation.numOfAdultSeats || 0} Adults, ${reservation.numOfChildrenSeats || 0} Children`;
         this.setElementText('seatDetails', seatDetails);
 
-        this.setElementText('trainBoxClass', reservation.trainBoxClass || 'N/A');
+        // FIX: Get class type from multiple possible sources
+        const classType = this.getClassInfo(reservation, booking);
+        this.setElementText('trainBoxClass', classType);
 
         const totalAmount = `Rs. ${parseFloat(reservation.totalBill || 0).toLocaleString()}`;
         this.setElementText('totalAmount', totalAmount);
@@ -295,7 +300,7 @@ class CreatePayment {
             return false;
         }
 
-
+        // Check if card is expired
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth() + 1;
 
@@ -429,10 +434,10 @@ class CreatePayment {
             transactionId: transactionId
         };
 
-        console.log('Submitting payment:', paymentData);
+        console.log('Submitting payment:', paymentData); // Debug log
 
         try {
-
+            // Simulate payment processing
             await this.simulatePaymentProcessing();
 
             const response = await fetch('/api/payments', {
@@ -445,9 +450,9 @@ class CreatePayment {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Payment created successfully:', result);
+                console.log('Payment created successfully:', result); // Debug log
 
-
+                // Mark payment as completed
                 const completeResponse = await fetch(`/api/payments/${result.id}/complete`, {
                     method: 'PUT'
                 });
@@ -462,11 +467,11 @@ class CreatePayment {
                 }
             } else {
                 const error = await response.text();
-                console.error('Payment creation failed:', error);
+                console.error('Payment creation failed:', error); // Debug log
                 this.showError(null, error || 'Failed to process payment');
             }
         } catch (error) {
-            console.error('Payment processing error:', error);
+            console.error('Payment processing error:', error); // Debug log
             this.showError(null, 'Payment processing failed. Please try again.');
         } finally {
             this.setLoading(false);
@@ -475,9 +480,43 @@ class CreatePayment {
 
     simulatePaymentProcessing() {
         return new Promise((resolve) => {
-
+            // Simulate network delay and payment processing
             setTimeout(resolve, 2000);
         });
+    }
+    getClassInfo(reservation, booking) {
+        // Try the new DTO field name first
+        if (reservation && reservation.classType) {
+            return reservation.classType;
+        }
+        // Fallback to old field names
+        if (reservation && reservation.trainBoxClass) {
+            return reservation.trainBoxClass;
+        }
+        if (booking && booking.classType) {
+            return booking.classType;
+        }
+        return 'N/A';
+    }
+    getSeatInfo(reservation, booking) {
+        // Try the new DTO field names first
+        if (reservation && reservation.numberOfAdults !== undefined) {
+            const adults = reservation.numberOfAdults || 0;
+            const children = reservation.numberOfChildren || 0;
+            return `${adults} Adult(s), ${children} Child(ren)`;
+        }
+        // Fallback to old field names
+        if (reservation && reservation.numOfAdultSeats !== undefined) {
+            const adults = reservation.numOfAdultSeats || 0;
+            const children = reservation.numOfChildrenSeats || 0;
+            return `${adults} Adult(s), ${children} Child(ren)`;
+        }
+        if (booking && booking.numberOfAdults !== undefined) {
+            const adults = booking.numberOfAdults || 0;
+            const children = booking.numberOfChildren || 0;
+            return `${adults} Adult(s), ${children} Child(ren)`;
+        }
+        return '0 Adult(s), 0 Child(ren)';
     }
 
     showSuccess(message) {
@@ -503,7 +542,7 @@ class CreatePayment {
     }
 }
 
-
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing CreatePayment...'); // Debug log
     new CreatePayment();
