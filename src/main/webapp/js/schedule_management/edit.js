@@ -90,6 +90,13 @@ class ScheduleEdit {
             }
 
             const schedule = await response.json();
+
+            // Check if schedule is deleted
+            if (schedule.deleteStatus) {
+                this.showError('This schedule has been deleted and cannot be edited');
+                return;
+            }
+
             this.originalData = schedule;
             this.populateForm(schedule);
             this.showState('editForm');
