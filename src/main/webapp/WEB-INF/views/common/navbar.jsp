@@ -1,12 +1,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Optional: Inter font for modern look -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-<style>
-    body {
-        font-family: 'Inter', sans-serif;
-    }
-</style>
-<nav id="railswift-navbar" class="bg-slate-900 shadow-lg sticky top-0 z-50">
+
+<nav id="rai
+lswift-navbar" class="bg-slate-900 shadow-lg sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
 
