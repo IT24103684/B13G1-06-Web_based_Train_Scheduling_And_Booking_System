@@ -24,6 +24,75 @@ class ScheduleCreate {
     init() {
         this.setMinDate();
         this.bindEvents();
+        this.initNotifications();
+    }
+
+    initNotifications() {
+        const fetchNotifications = () => {
+            fetch('/api/schedules/notifications')
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to load notifications');
+                    return res.json();
+                })
+                .then(data => {
+                    const loadingEl = document.getElementById('loadingNotifications');
+                    const listEl = document.getElementById('notificationList');
+                    const emptyEl = document.getElementById('emptyNotifications');
+
+                    if (loadingEl) loadingEl.classList.add('hidden');
+
+                    if (data && Array.isArray(data) && data.length > 0) {
+                        if (listEl) {
+                            listEl.classList.remove('hidden');
+                            listEl.innerHTML = data.map(msg => {
+                                let icon = 'fas fa-bell';
+                                let bgColor = 'bg-white';
+                                let textColor = 'text-gray-800';
+
+                                if (msg.includes('NEW Schedule')) {
+                                    icon = 'fas fa-plus-circle';
+                                    bgColor = 'bg-green-50';
+                                    textColor = 'text-green-800';
+                                } else if (msg.includes('UPDATED')) {
+                                    icon = 'fas fa-edit';
+                                    bgColor = 'bg-blue-50';
+                                    textColor = 'text-blue-800';
+                                } else if (msg.includes('CANCELLED')) {
+                                    icon = 'fas fa-trash';
+                                    bgColor = 'bg-red-50';
+                                    textColor = 'text-red-800';
+                                }
+
+                                return `
+                                    <div class="p-3 ${bgColor} ${textColor} rounded border border-gray-200 text-sm shadow-sm flex items-start mb-2">
+                                        <i class="${icon} mr-2 mt-0.5 flex-shrink-0"></i>
+                                        <span class="flex-1">${msg}</span>
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                        if (emptyEl) emptyEl.classList.add('hidden');
+                    } else {
+                        if (listEl) listEl.classList.add('hidden');
+                        if (emptyEl) emptyEl.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    const loadingEl = document.getElementById('loadingNotifications');
+                    if (loadingEl) {
+                        loadingEl.innerHTML = `
+                            <div class="text-center text-red-500">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Failed to load notifications
+                            </div>
+                        `;
+                    }
+                });
+        };
+
+        // Initialize notifications
+        fetchNotifications();
+        setInterval(fetchNotifications, 5000);
     }
 
     setMinDate() {
@@ -54,7 +123,7 @@ class ScheduleCreate {
         const value = input.value.trim();
 
         if (!value) {
-            this.showError(errorDiv, ${this.formatFieldName(fieldName)} is required);
+            this.showError(errorDiv, `${this.formatFieldName(fieldName)} is required`);
             return false;
         }
 
