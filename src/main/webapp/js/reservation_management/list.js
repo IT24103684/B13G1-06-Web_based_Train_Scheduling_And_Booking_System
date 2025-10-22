@@ -358,7 +358,6 @@ class AdminReservationList {
         // Populate form fields
         document.getElementById('editNumOfAdultSeats').value = reservation.numOfAdultSeats || 1;
         document.getElementById('editNumOfChildrenSeats').value = reservation.numOfChildrenSeats || 0;
-        document.getElementById('editTrainBoxClass').value = reservation.trainBoxClass || 'Economy';
         document.getElementById('editTotalBill').value = reservation.totalBill || 0;
 
         // Update status dropdown with only allowed options

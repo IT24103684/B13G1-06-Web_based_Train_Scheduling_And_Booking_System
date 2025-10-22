@@ -100,6 +100,16 @@
                             class="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
                     >
                     <select
+                            id="classFilter"
+                            class="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
+                    >
+                        <option value="">All Classes</option>
+                        <option value="ECONOMY">Economy</option>
+                        <option value="BUSINESS">Business</option>
+                        <option value="FIRST_CLASS">First Class</option>
+                        <option value="LUXURY">Luxury</option>
+                    </select>
+                    <select
                             id="statusFilter"
                             class="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200"
                     >
@@ -159,8 +169,9 @@
                         <tr class="border-b bg-muted/50">
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Booking ID</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Passenger</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Train</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Train & Class</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Route & Schedule</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Seats</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
                             <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Actions</th>
                         </tr>
@@ -229,6 +240,16 @@
                 <div class="bg-muted/50 rounded-lg p-4">
                     <h3 class="text-lg font-semibold text-foreground mb-4">Booking Details</h3>
                     <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-muted-foreground">Class Type</label>
+                                <p id="viewClassType" class="text-foreground font-medium capitalize">Economy</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-muted-foreground">Seat Count</label>
+                                <p id="viewSeatCount" class="text-foreground">1 seat</p>
+                            </div>
+                        </div>
                         <div>
                             <label class="text-sm font-medium text-muted-foreground">Additional Notes</label>
                             <p id="viewNotes" class="text-foreground whitespace-pre-line">None provided</p>

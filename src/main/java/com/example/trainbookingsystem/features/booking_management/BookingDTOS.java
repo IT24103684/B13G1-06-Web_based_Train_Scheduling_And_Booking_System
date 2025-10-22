@@ -10,6 +10,7 @@ public class BookingDTOS {
         private Long passengerId;
         private Long scheduleId;
         private Integer seatCount;
+        private String classType;
         private String additionalNotes;
 
         public CreateBookingDTO() {}
@@ -22,6 +23,13 @@ public class BookingDTOS {
             this.seatCount = seatCount;
         }
 
+        public String getClassType() {
+            return classType;
+        }
+
+        public void setClassType(String classType) {
+            this.classType = classType;
+        }
 
         public Long getPassengerId() {
             return passengerId;
@@ -66,6 +74,8 @@ public class BookingDTOS {
         private Long id;
         private PassengerInfo passenger;
         private ScheduleInfo schedule;
+        private Integer seatCount; // ADD THIS FIELD
+        private String classType;
         private String additionalNotes;
         private Boolean deleteStatus;
         private LocalDateTime createdAt;
@@ -95,6 +105,22 @@ public class BookingDTOS {
 
         public void setSchedule(ScheduleInfo schedule) {
             this.schedule = schedule;
+        }
+
+        public Integer getSeatCount() {
+            return seatCount;
+        }
+
+        public void setSeatCount(Integer seatCount) {
+            this.seatCount = seatCount;
+        }
+
+        public String getClassType() {
+            return classType;
+        }
+
+        public void setClassType(String classType) {
+            this.classType = classType;
         }
 
         public String getAdditionalNotes() {
@@ -188,6 +214,10 @@ public class BookingDTOS {
         private LocalTime time;
         private String trainType;
         private String trainName;
+        private Integer availableEconomySeats;
+        private Integer availableBusinessSeats;
+        private Integer availableFirstClassSeats;
+        private Integer availableLuxurySeats;
 
         public ScheduleInfo() {}
 
@@ -245,6 +275,38 @@ public class BookingDTOS {
 
         public void setTrainName(String trainName) {
             this.trainName = trainName;
+        }
+
+        public Integer getAvailableEconomySeats() {
+            return availableEconomySeats;
+        }
+
+        public void setAvailableEconomySeats(Integer availableEconomySeats) {
+            this.availableEconomySeats = availableEconomySeats;
+        }
+
+        public Integer getAvailableBusinessSeats() {
+            return availableBusinessSeats;
+        }
+
+        public void setAvailableBusinessSeats(Integer availableBusinessSeats) {
+            this.availableBusinessSeats = availableBusinessSeats;
+        }
+
+        public Integer getAvailableFirstClassSeats() {
+            return availableFirstClassSeats;
+        }
+
+        public void setAvailableFirstClassSeats(Integer availableFirstClassSeats) {
+            this.availableFirstClassSeats = availableFirstClassSeats;
+        }
+
+        public Integer getAvailableLuxurySeats() {
+            return availableLuxurySeats;
+        }
+
+        public void setAvailableLuxurySeats(Integer availableLuxurySeats) {
+            this.availableLuxurySeats = availableLuxurySeats;
         }
     }
 }

@@ -16,12 +16,19 @@ class UserPaymentList {
     }
 
     checkAuthentication() {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
+        // Use sessionStorage to match your booking system
+        const session = sessionStorage.getItem('passengerSession');
+        if (!session) {
             window.location.href = '/login';
             return;
         }
-        this.passengerId = parseInt(userId);
+
+        try {
+            const sessionData = JSON.parse(session);
+            this.passengerId = sessionData.id;
+        } catch (error) {
+            window.location.href = '/login';
+        }
     }
 
     async loadUserPayments() {
@@ -90,7 +97,22 @@ class UserPaymentList {
         });
     }
 
-    createPaymentCard(payment) {
+    getClassBadge(classType) {
+        const classStyles = {
+            'ECONOMY': 'class-economy',
+            'BUSINESS': 'class-business',
+            'FIRST_CLASS': 'class-first_class',
+            'LUXURY': 'class-luxury'
+        };
+
+        const className = classType || 'ECONOMY';
+        const styleClass = classStyles[className] || 'class-economy';
+        const displayName = className.toLowerCase().replace('_', ' ');
+
+        return `<span class="class-badge ${styleClass}">${displayName}</span>`;
+    }
+
+    createReservationCard(reservation) {
         const card = document.createElement('div');
         card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300';
 
@@ -132,167 +154,117 @@ class UserPaymentList {
             hour12: true
         }) : 'N/A';
 
-        const paidAtFormatted = payment.paidAt ? this.formatDateTime(payment.paidAt) : 'Payment Pending';
+        const totalBill = reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0';
+
+        // Determine if user can update or delete
+        const canUserUpdate = reservation.status === 'PENDING';
+        const canDelete = reservation.status !== 'COMPLETED';
 
         card.innerHTML = `
-            <div class="p-6">
-                <!-- Header -->
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="text-xl font-bold text-foreground mb-1">Payment #${payment.id}</h3>
-                        <p class="text-sm text-muted-foreground">Transaction ID: ${payment.transactionId || 'Pending'}</p>
-                    </div>
-                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium border ${statusColors[payment.paymentStatus] || 'bg-gray-100 text-gray-800'}">
-                        <i class="fas ${statusIcons[payment.paymentStatus] || 'fa-question'} mr-2"></i>
-                        ${payment.paymentStatus}
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-foreground">Reservation #${reservation.id}</h3>
+                    <p class="text-sm text-muted-foreground">Booked on ${reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A'}</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${this.getStatusClass(reservation.status)}">
+                        ${this.getStatusDisplayText(reservation.status)}
                     </span>
-                </div>
-
-                <!-- Train & Journey Details -->
-                <div class="bg-gradient-to-r from-primary to-primary/80 rounded-lg p-4 text-white mb-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center space-x-3">
-                            <div class="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
-                                <i class="fas fa-train text-white"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-lg">${schedule.trainName || 'N/A'}</h4>
-                                <span class="text-sm opacity-90">${schedule.trainType || 'N/A'}</span>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-sm opacity-90">${formattedDate}</div>
-                            <div class="font-bold">${formattedTime}</div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <div class="text-center">
-                            <div class="text-xs opacity-75">From</div>
-                            <div class="font-bold flex items-center">
-                                <i class="fas fa-map-marker-alt text-green-300 mr-1"></i>
-                                ${schedule.fromCity || 'N/A'}
-                            </div>
-                        </div>
-                        <div class="flex-1 flex items-center justify-center px-4">
-                            <div class="h-px bg-white/30 flex-1"></div>
-                            <i class="fas fa-arrow-right mx-3 text-white/70"></i>
-                            <div class="h-px bg-white/30 flex-1"></div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xs opacity-75">To</div>
-                            <div class="font-bold flex items-center">
-                                <i class="fas fa-map-marker-alt text-red-300 mr-1"></i>
-                                ${schedule.toCity || 'N/A'}
-                            </div>
-                        </div>
+                    <div class="mt-1">
+                        ${this.getClassBadge(reservation.classType)}
                     </div>
                 </div>
-
-                <!-- Payment Details -->
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-muted/50 rounded-lg p-3">
-                        <div class="text-sm text-muted-foreground mb-1">Amount Paid</div>
-                        <div class="text-2xl font-bold text-foreground">Rs. ${parseFloat(payment.amount || 0).toLocaleString()}</div>
-                    </div>
-                    <div class="bg-muted/50 rounded-lg p-3">
-                        <div class="text-sm text-muted-foreground mb-1">Payment Method</div>
-                        <div class="flex items-center text-foreground">
-                            <i class="${methodIcons[payment.paymentMethod] || 'fas fa-question'} text-primary mr-2"></i>
-                            <span class="font-medium">${this.formatPaymentMethod(payment.paymentMethod)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Booking Info -->
-                <div class="bg-muted/30 rounded-lg p-3 mb-4">
-    <div class="grid grid-cols-3 gap-3 text-sm">
-        <div>
-            <div class="text-muted-foreground">Booking ID</div>
-            <div class="font-medium text-foreground">#${booking.id || 'N/A'}</div>
-        </div>
-        <div>
-            <div class="text-muted-foreground">Seats</div>
-            <div class="font-medium text-foreground">
-                ${this.getSeatInfo(reservation, booking)}
             </div>
-        </div>
-        <div>
-            <div class="text-muted-foreground">Class</div>
-            <div class="font-medium text-foreground">${this.getClassInfo(reservation, booking)}</div>
-        </div>
-    </div>
-</div>
 
-                <!-- Timeline -->
-                <div class="border-t pt-4">
-                    <div class="flex items-center text-sm text-muted-foreground">
-                        <i class="fas fa-calendar-check mr-2"></i>
-                        <span>Paid on: ${paidAtFormatted}</span>
-                    </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Passenger</h4>
+                    <p class="text-sm">${passenger.firstName || ''} ${passenger.lastName || ''}</p>
+                    <p class="text-xs text-muted-foreground">${passenger.email || ''}</p>
                 </div>
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Train Journey</h4>
+                    <p class="text-sm font-medium">${schedule.trainName || 'N/A'} (${schedule.trainType || 'N/A'})</p>
+                    <p class="text-sm">
+                        <span class="font-medium">${schedule.fromCity || 'N/A'}</span> → <span class="font-medium">${schedule.toCity || 'N/A'}</span>
+                    </p>
+                    <p class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</p>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Booking Details</h4>
+                    <p class="text-sm">
+                        ${reservation.numOfAdultSeats || 0} adult seat${reservation.numOfAdultSeats !== 1 ? 's' : ''}, 
+                        ${reservation.numOfChildrenSeats || 0} child seat${reservation.numOfChildrenSeats !== 1 ? 's' : ''}
+                    </p>
+                    <p class="text-sm">Total: ${(reservation.numOfAdultSeats || 0) + (reservation.numOfChildrenSeats || 0)} seats</p>
+                    <p class="text-sm italic">${booking.additionalNotes || 'No special notes'}</p>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="font-medium text-foreground">Payment</h4>
+                    <p class="text-sm font-bold">Total: Rs. ${totalBill}</p>
+                    <p class="text-xs text-muted-foreground">Booking ID: #${booking.id || 'N/A'}</p>
+                    <p class="text-xs text-muted-foreground">Last updated: ${reservation.updatedAt ? new Date(reservation.updatedAt).toLocaleString() : 'Never'}</p>
+                </div>
+            </div>
 
-                <!-- Action Buttons -->
-                <div class="flex gap-3 mt-4">
-                    ${payment.paymentStatus === 'COMPLETED' ? `
-                        <button
-                            onclick="userPaymentList.downloadReceipt(${payment.id})"
-                            class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
+                <div class="flex-1">
+                    ${canUserUpdate ? `
+                    <div class="w-full">
+                        <label for="status-${reservation.id}" class="block text-sm font-medium text-foreground mb-1">Update Status</label>
+                        <select
+                            id="status-${reservation.id}"
+                            class="status-select block w-full sm:w-48 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         >
-                            <i class="fas fa-download mr-2"></i>
-                            Download Receipt
-                        </button>
-                    ` : ''}
-                    <button
-                        onclick="userPaymentList.viewPaymentDetails(${payment.id})"
-                        class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                            <option value="${reservation.status}" selected>
+                                ${this.getStatusDisplayText(reservation.status)} (Current)
+                            </option>
+                            ${reservation.status === 'PENDING' ? '<option value="CANCELLED">Cancel Reservation</option>' : ''}
+                        </select>
+                    </div>
+                    ` : `
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-muted-foreground mb-1">Status</label>
+                        <div class="text-sm text-foreground font-medium">
+                            ${this.getStatusDisplayText(reservation.status)}
+                        </div>
+                        <div class="text-xs text-muted-foreground">
+                            ${reservation.status === 'CANCELLED' ? 'Cancelled' :
+            reservation.status === 'COMPLETED' ? 'Completed' : 'Status cannot be changed'}
+                        </div>
+                    </div>
+                    `}
+                </div>
+                
+                <div class="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+                    ${canUserUpdate ? `
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
                     >
-                        <i class="fas fa-eye mr-2"></i>
-                        View Details
+                        <i class="fas fa-save mr-2"></i>
+                        Update Status
+                    </button>
+                    ` : ''}
+
+                    <button 
+                        type="button" 
+                        data-id="${reservation.id}" 
+                        class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        ${!canDelete ? 'disabled' : ''}
+                    >
+                        <i class="fas fa-trash-alt mr-2"></i>
+                        Delete
                     </button>
                 </div>
             </div>
-            `}
-        </div>
-        
-        <div class="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-            ${canUserUpdate ? `
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="update-status-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
-            >
-                <i class="fas fa-save mr-2"></i>
-                Update Status
-            </button>
-            ` : ''}
+        `;
 
-            ${showPaymentButton ? `
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="make-payment-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-600 text-white hover:bg-green-700 h-10 px-4 py-2"
-            >
-                <i class="fas fa-credit-card mr-2"></i>
-                Pay Now
-            </button>
-            ` : ''}
-
-            <button 
-                type="button" 
-                data-id="${reservation.id}" 
-                class="delete-reservation-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                ${!canDelete ? 'disabled' : ''}
-            >
-                <i class="fas fa-trash-alt mr-2"></i>
-                Delete
-            </button>
-        </div>
-    </div>
-    `;
-
-        return card;
-    }
+        // Add event listeners
+        const updateBtn = card.querySelector('.update-status-btn');
+        const deleteBtn = card.querySelector('.delete-reservation-btn');
+        const statusSelect = card.querySelector('.status-select');
 
     formatPaymentMethod(method) {
         const methods = {
@@ -315,137 +287,7 @@ class UserPaymentList {
         });
     }
 
-    viewPaymentDetails(paymentId) {
-        const payment = this.payments.find(p => p.id === paymentId);
-        if (!payment) return;
-
-        const booking = payment.booking || {};
-        const schedule = booking.schedule || {};
-        const reservation = booking.reservation || payment.reservation || {};
-        const passenger = booking.passenger || {};
-
-        const detailsHTML = `
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove(); document.body.style.overflow = 'auto';">
-                <div class="bg-white rounded-lg shadow-lg max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-foreground">Payment Details</h2>
-                            <button onclick="this.closest('.fixed').remove(); document.body.style.overflow = 'auto';" class="text-gray-400 hover:text-gray-600">
-                                <i class="fas fa-times text-xl"></i>
-                            </button>
-                        </div>
-
-                        <div class="space-y-6">
-                            <!-- Payment Information -->
-                            <div class="bg-muted/50 rounded-lg p-4">
-                                <h3 class="text-lg font-semibold text-foreground mb-4">Payment Information</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Payment ID</label>
-                                        <p class="text-foreground font-medium">#${payment.id}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Transaction ID</label>
-                                        <p class="text-foreground font-mono text-sm">${payment.transactionId || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Amount</label>
-                                        <p class="text-foreground font-bold text-lg">Rs. ${parseFloat(payment.amount || 0).toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Payment Method</label>
-                                        <p class="text-foreground">${this.formatPaymentMethod(payment.paymentMethod)}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Status</label>
-                                        <p class="text-foreground"><span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${this.getStatusClass(payment.paymentStatus)}">${payment.paymentStatus}</span></p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Paid At</label>
-                                        <p class="text-foreground">${payment.paidAt ? this.formatDateTime(payment.paidAt) : 'Pending'}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Booking Details -->
-                            <div class="bg-muted/50 rounded-lg p-4">
-                                <h3 class="text-lg font-semibold text-foreground mb-4">Booking Details</h3>
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Booking ID</label>
-                                        <p class="text-foreground">#${booking.id || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Train</label>
-                                        <p class="text-foreground font-medium">${schedule.trainName || 'N/A'} (${schedule.trainType || 'N/A'})</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Route</label>
-                                        <p class="text-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Journey Date & Time</label>
-                                        <p class="text-foreground">${schedule.date ? new Date(schedule.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'} at ${schedule.time || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Seats</label>
-                                        <p class="text-foreground">${this.getSeatInfo(reservation, booking)}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Class</label>
-                                        <p class="text-foreground">${this.getClassInfo(reservation, booking)}</p>
-                                    </div>
-                                    ${booking.notes ? `
-                                        <div>
-                                            <label class="text-sm font-medium text-muted-foreground">Notes</label>
-                                            <p class="text-foreground whitespace-pre-line">${booking.notes}</p>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-
-                            <!-- Passenger Information -->
-                            <div class="bg-muted/50 rounded-lg p-4">
-                                <h3 class="text-lg font-semibold text-foreground mb-4">Passenger Information</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Name</label>
-                                        <p class="text-foreground">${passenger.firstName || ''} ${passenger.lastName || ''}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Email</label>
-                                        <p class="text-foreground">${passenger.email || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">Contact</label>
-                                        <p class="text-foreground">${passenger.contactNo || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label class="text-sm font-medium text-muted-foreground">NIC</label>
-                                        <p class="text-foreground">${passenger.nic || 'N/A'}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            ${payment.paymentStatus === 'COMPLETED' ? `
-                                <div class="flex justify-end">
-                                    <button
-                                        onclick="userPaymentList.downloadReceipt(${payment.id})"
-                                        class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 py-2"
-                                    >
-                                        <i class="fas fa-download mr-2"></i>
-                                        Download Receipt
-                                    </button>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', detailsHTML);
-        document.body.style.overflow = 'hidden';
+        return card;
     }
 
     getStatusDisplayText(status) {
@@ -661,11 +503,6 @@ class UserPaymentList {
         `;
         document.body.appendChild(alert);
         setTimeout(() => alert.remove(), 5000);
-    }
-
-    handleMakePayment(reservationId) {
-        // Redirect to payment page
-        window.location.href = '/create-payment?reservationId=' + reservationId;
     }
 }
 

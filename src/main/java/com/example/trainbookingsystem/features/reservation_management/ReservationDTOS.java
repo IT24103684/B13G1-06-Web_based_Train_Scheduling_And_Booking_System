@@ -11,11 +11,20 @@ public class ReservationDTOS {
         private Long bookingId;
         private Integer numOfAdultSeats;
         private Integer numOfChildrenSeats;
-        private String trainBoxClass;
         private BigDecimal totalBill;
         private String status;
 
         public CreateReservationDTO() {}
+
+        // ADD VALIDATION METHODS
+        public Integer getTotalSeats() {
+            return (numOfAdultSeats != null ? numOfAdultSeats : 0) +
+                    (numOfChildrenSeats != null ? numOfChildrenSeats : 0);
+        }
+
+        public boolean isValidSeatCount(Integer bookingSeatCount) {
+            return getTotalSeats() <= bookingSeatCount;
+        }
 
         public Long getBookingId() {
             return bookingId;
@@ -41,14 +50,6 @@ public class ReservationDTOS {
             this.numOfChildrenSeats = numOfChildrenSeats;
         }
 
-        public String getTrainBoxClass() {
-            return trainBoxClass;
-        }
-
-        public void setTrainBoxClass(String trainBoxClass) {
-            this.trainBoxClass = trainBoxClass;
-        }
-
         public BigDecimal getTotalBill() {
             return totalBill;
         }
@@ -69,11 +70,16 @@ public class ReservationDTOS {
     public static class UpdateReservationDTO {
         private Integer numOfAdultSeats;
         private Integer numOfChildrenSeats;
-        private String trainBoxClass;
         private BigDecimal totalBill;
         private String status;
 
         public UpdateReservationDTO() {}
+
+        // ADD VALIDATION METHOD
+        public Integer getTotalSeats() {
+            return (numOfAdultSeats != null ? numOfAdultSeats : 0) +
+                    (numOfChildrenSeats != null ? numOfChildrenSeats : 0);
+        }
 
         public Integer getNumOfAdultSeats() {
             return numOfAdultSeats;
@@ -89,14 +95,6 @@ public class ReservationDTOS {
 
         public void setNumOfChildrenSeats(Integer numOfChildrenSeats) {
             this.numOfChildrenSeats = numOfChildrenSeats;
-        }
-
-        public String getTrainBoxClass() {
-            return trainBoxClass;
-        }
-
-        public void setTrainBoxClass(String trainBoxClass) {
-            this.trainBoxClass = trainBoxClass;
         }
 
         public BigDecimal getTotalBill() {
@@ -122,11 +120,17 @@ public class ReservationDTOS {
         private Boolean deleteStatus;
         private Integer numOfAdultSeats;
         private Integer numOfChildrenSeats;
-        private String trainBoxClass;
+        private String classType;
         private BigDecimal totalBill;
         private String status;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+
+        // MOVE getTotalSeats() method to be with other getters
+        public Integer getTotalSeats() {
+            return (numOfAdultSeats != null ? numOfAdultSeats : 0) +
+                    (numOfChildrenSeats != null ? numOfChildrenSeats : 0);
+        }
 
         public ReservationResponseDTO() {}
 
@@ -170,12 +174,12 @@ public class ReservationDTOS {
             this.numOfChildrenSeats = numOfChildrenSeats;
         }
 
-        public String getTrainBoxClass() {
-            return trainBoxClass;
+        public String getClassType() {
+            return classType;
         }
 
-        public void setTrainBoxClass(String trainBoxClass) {
-            this.trainBoxClass = trainBoxClass;
+        public void setClassType(String classType) {
+            this.classType = classType;
         }
 
         public BigDecimal getTotalBill() {
@@ -310,6 +314,10 @@ public class ReservationDTOS {
         private LocalTime time;
         private String trainType;
         private String trainName;
+        private Integer availableEconomySeats;
+        private Integer availableBusinessSeats;
+        private Integer availableFirstClassSeats;
+        private Integer availableLuxurySeats;
 
         public ScheduleInfo() {}
 
@@ -367,6 +375,38 @@ public class ReservationDTOS {
 
         public void setTrainName(String trainName) {
             this.trainName = trainName;
+        }
+
+        public Integer getAvailableEconomySeats() {
+            return availableEconomySeats;
+        }
+
+        public void setAvailableEconomySeats(Integer availableEconomySeats) {
+            this.availableEconomySeats = availableEconomySeats;
+        }
+
+        public Integer getAvailableBusinessSeats() {
+            return availableBusinessSeats;
+        }
+
+        public void setAvailableBusinessSeats(Integer availableBusinessSeats) {
+            this.availableBusinessSeats = availableBusinessSeats;
+        }
+
+        public Integer getAvailableFirstClassSeats() {
+            return availableFirstClassSeats;
+        }
+
+        public void setAvailableFirstClassSeats(Integer availableFirstClassSeats) {
+            this.availableFirstClassSeats = availableFirstClassSeats;
+        }
+
+        public Integer getAvailableLuxurySeats() {
+            return availableLuxurySeats;
+        }
+
+        public void setAvailableLuxurySeats(Integer availableLuxurySeats) {
+            this.availableLuxurySeats = availableLuxurySeats;
         }
     }
 }

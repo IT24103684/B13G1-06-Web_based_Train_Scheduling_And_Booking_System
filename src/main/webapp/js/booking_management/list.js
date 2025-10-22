@@ -1,17 +1,18 @@
-class AdminReservationList {
+class AdminBookingList {
     constructor() {
-        this.reservations = [];
-        this.filteredReservations = [];
-        this.currentReservationId = null;
-        this.deleteReservationId = null;
+        this.bookings = [];
+        this.filteredBookings = [];
+        this.currentBookingId = null;
+        this.deleteBookingId = null;
 
         this.elements = {
             searchInput: document.getElementById('searchInput'),
-            statusFilter: document.getElementById('statusFilter'),
             dateFilter: document.getElementById('dateFilter'),
+            classFilter: document.getElementById('classFilter'),
+            statusFilter: document.getElementById('statusFilter'),
             clearFilters: document.getElementById('clearFilters'),
-            reservationTable: document.getElementById('reservationTable'),
-            reservationTableBody: document.getElementById('reservationTableBody'),
+            bookingTable: document.getElementById('bookingTable'),
+            bookingTableBody: document.getElementById('bookingTableBody'),
             loadingState: document.getElementById('loadingState'),
             errorState: document.getElementById('errorState'),
             emptyState: document.getElementById('emptyState'),
@@ -29,13 +30,14 @@ class AdminReservationList {
 
     init() {
         this.bindEvents();
-        this.loadReservations();
+        this.loadBookings();
     }
 
     bindEvents() {
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
-        this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
+        this.elements.classFilter.addEventListener('change', (e) => this.handleClassFilter(e.target.value));
+        this.elements.statusFilter.addEventListener('change', (e) => this.handleStatusFilter(e.target.value));
         this.elements.clearFilters.addEventListener('click', () => this.clearFilters());
         this.elements.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteModal());
         this.elements.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
@@ -69,41 +71,26 @@ class AdminReservationList {
         // Handle table actions
         document.addEventListener('click', (e) => {
             if (e.target.closest('.view-btn')) {
-                const reservationId = e.target.closest('.view-btn').dataset.reservationId;
-                this.showViewModal(reservationId);
+                const bookingId = e.target.closest('.view-btn').dataset.bookingId;
+                this.showViewModal(bookingId);
             }
             if (e.target.closest('.edit-btn')) {
-                const reservationId = e.target.closest('.edit-btn').dataset.reservationId;
-                this.showEditModal(reservationId);
+                const bookingId = e.target.closest('.edit-btn').dataset.bookingId;
+                this.showEditModal(bookingId);
             }
             if (e.target.closest('.delete-btn')) {
-                const reservationId = e.target.closest('.delete-btn').dataset.reservationId;
-                this.showDeleteModal(reservationId);
+                const bookingId = e.target.closest('.delete-btn').dataset.bookingId;
+                this.showDeleteModal(bookingId);
             }
         });
 
         // Handle edit form submission
         this.elements.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
-
-        // Recalculate total bill when values change
-        const adultSeats = document.getElementById('editNumOfAdultSeats');
-        const childSeats = document.getElementById('editNumOfChildrenSeats');
-        const trainBoxClass = document.getElementById('editTrainBoxClass');
-
-        if (adultSeats) {
-            adultSeats.addEventListener('change', () => this.calculateTotalBill());
-        }
-        if (childSeats) {
-            childSeats.addEventListener('change', () => this.calculateTotalBill());
-        }
-        if (trainBoxClass) {
-            trainBoxClass.addEventListener('change', () => this.calculateTotalBill());
-        }
     }
 
     showState(stateName) {
         Object.keys(this.elements).forEach(key => {
-            if (key.endsWith('State') || key === 'reservationTable') {
+            if (key.endsWith('State') || key === 'bookingTable') {
                 this.elements[key].classList.add('hidden');
             }
         });
@@ -113,18 +100,18 @@ class AdminReservationList {
         }
     }
 
-    async loadReservations() {
+    async loadBookings() {
         this.showState('loadingState');
 
         try {
-            const response = await fetch('/api/reservations');
+            const response = await fetch('/api/bookings');
 
             if (!response.ok) {
-                throw new Error('Failed to fetch reservations');
+                throw new Error('Failed to fetch bookings');
             }
 
-            this.reservations = await response.json();
-            this.filteredReservations = [...this.reservations];
+            this.bookings = await response.json();
+            this.filteredBookings = [...this.bookings];
             this.renderTable();
         } catch (error) {
             this.showState('errorState');
@@ -135,41 +122,49 @@ class AdminReservationList {
         this.applyFilters();
     }
 
-    handleStatusFilter(status) {
+    handleDateFilter(date) {
         this.applyFilters();
     }
 
-    handleDateFilter(date) {
+    handleClassFilter(classType) {
+        this.applyFilters();
+    }
+
+    handleStatusFilter(status) {
         this.applyFilters();
     }
 
     applyFilters() {
         const searchTerm = this.elements.searchInput.value.toLowerCase().trim();
-        const selectedStatus = this.elements.statusFilter.value;
         const selectedDate = this.elements.dateFilter.value;
+        const selectedClass = this.elements.classFilter.value;
+        const selectedStatus = this.elements.statusFilter.value;
 
-        this.filteredReservations = this.reservations.filter(reservation => {
-            const booking = reservation.booking || {};
+        this.filteredBookings = this.bookings.filter(booking => {
             const schedule = booking.schedule || {};
             const passenger = booking.passenger || {};
 
             const matchesSearch = !searchTerm ||
-                passenger.firstName?.toLowerCase().includes(searchTerm) ||
-                passenger.lastName?.toLowerCase().includes(searchTerm) ||
-                passenger.email?.toLowerCase().includes(searchTerm) ||
                 schedule.trainName?.toLowerCase().includes(searchTerm) ||
                 schedule.fromCity?.toLowerCase().includes(searchTerm) ||
                 schedule.toCity?.toLowerCase().includes(searchTerm) ||
-                reservation.trainBoxClass?.toLowerCase().includes(searchTerm) ||
-                reservation.paidMethod?.toLowerCase().includes(searchTerm);
-
-            const matchesStatus = !selectedStatus || reservation.status === selectedStatus;
+                passenger.firstName?.toLowerCase().includes(searchTerm) ||
+                passenger.lastName?.toLowerCase().includes(searchTerm) ||
+                passenger.email?.toLowerCase().includes(searchTerm) ||
+                passenger.contactNumber?.includes(searchTerm) ||
+                booking.classType?.toLowerCase().includes(searchTerm);
 
             const matchesDate = !selectedDate ||
-                (reservation.createdAt && reservation.createdAt.startsWith(selectedDate)) ||
                 (schedule.date && schedule.date.startsWith(selectedDate));
 
-            return matchesSearch && matchesStatus && matchesDate;
+            const matchesClass = !selectedClass ||
+                booking.classType === selectedClass;
+
+            const matchesStatus = !selectedStatus ||
+                (selectedStatus === 'active' && !booking.deleteStatus) ||
+                (selectedStatus === 'deleted' && booking.deleteStatus);
+
+            return matchesSearch && matchesDate && matchesClass && matchesStatus;
         });
 
         this.renderTable();
@@ -177,26 +172,41 @@ class AdminReservationList {
 
     clearFilters() {
         this.elements.searchInput.value = '';
-        this.elements.statusFilter.value = '';
         this.elements.dateFilter.value = '';
-        this.filteredReservations = [...this.reservations];
+        this.elements.classFilter.value = '';
+        this.elements.statusFilter.value = '';
+        this.filteredBookings = [...this.bookings];
         this.renderTable();
     }
 
+    getClassBadge(classType) {
+        const classStyles = {
+            'ECONOMY': 'bg-green-100 text-green-800',
+            'BUSINESS': 'bg-blue-100 text-blue-800',
+            'FIRST_CLASS': 'bg-yellow-100 text-yellow-800',
+            'LUXURY': 'bg-purple-100 text-purple-800'
+        };
+
+        const className = classType || 'ECONOMY';
+        const styleClass = classStyles[className] || 'bg-gray-100 text-gray-800';
+        const displayName = className.toLowerCase().replace('_', ' ');
+
+        return `<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${styleClass}">${displayName}</span>`;
+    }
+
     renderTable() {
-        if (this.filteredReservations.length === 0) {
+        if (this.filteredBookings.length === 0) {
             this.showState('emptyState');
             return;
         }
 
-        this.showState('reservationTable');
+        this.showState('bookingTable');
 
-        this.elements.reservationTableBody.innerHTML = this.filteredReservations.map(reservation => {
-            const booking = reservation.booking || {};
+        this.elements.bookingTableBody.innerHTML = this.filteredBookings.map(booking => {
             const schedule = booking.schedule || {};
             const passenger = booking.passenger || {};
 
-            // Format dates
+            // Format date and time
             const formattedDate = schedule.date ? new Date(schedule.date).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -209,13 +219,11 @@ class AdminReservationList {
                 hour12: true
             }) : 'N/A';
 
-            const formattedCreatedAt = reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A';
-
             return `
                 <tr class="border-b transition-colors hover:bg-muted/50">
                     <td class="p-4 align-middle">
-                        <div class="font-medium text-foreground">#${reservation.id}</div>
-                        <div class="text-sm text-muted-foreground">${formattedCreatedAt}</div>
+                        <div class="font-medium text-foreground">#${booking.id}</div>
+                        <div class="text-sm text-muted-foreground">${this.formatDateTime(booking.createdAt)}</div>
                     </td>
                     <td class="p-4 align-middle">
                         <div class="font-medium text-foreground">${passenger.firstName || ''} ${passenger.lastName || ''}</div>
@@ -223,43 +231,47 @@ class AdminReservationList {
                     </td>
                     <td class="p-4 align-middle">
                         <div class="font-medium text-foreground">${schedule.trainName || 'N/A'}</div>
-                        <div class="text-sm text-muted-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
+                        <div class="text-sm text-muted-foreground">
+                            ${schedule.trainType || 'N/A'} • 
+                            ${this.getClassBadge(booking.classType)}
+                        </div>
                     </td>
                     <td class="p-4 align-middle">
-                        <div class="text-sm text-foreground">Adults: ${reservation.numOfAdultSeats || 0}</div>
-                        <div class="text-sm text-foreground">Children: ${reservation.numOfChildrenSeats || 0}</div>
-                        <div class="text-sm text-muted-foreground">${reservation.trainBoxClass || 'N/A'}</div>
+                        <div class="text-sm text-foreground">${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}</div>
+                        <div class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</div>
                     </td>
                     <td class="p-4 align-middle">
-                        <div class="text-sm text-foreground">Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}</div>
+                        <div class="text-sm font-medium text-foreground">${booking.seatCount || 1} seat${booking.seatCount !== 1 ? 's' : ''}</div>
                     </td>
                     <td class="p-4 align-middle">
                         <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                this.getStatusClass(reservation.status)
+                booking.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
             }">
-                            ${reservation.status || 'N/A'}
+                            ${booking.deleteStatus ? 'Deleted' : 'Active'}
                         </span>
                     </td>
                     <td class="p-4 align-middle text-right">
                         <div class="flex items-center justify-end space-x-2">
                             <button 
                                 class="view-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="View Reservation"
+                                data-booking-id="${booking.id}"
+                                title="View Booking"
                             >
                                 <i class="fas fa-eye text-primary"></i>
                             </button>
                             <button 
                                 class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="Edit Reservation"
+                                data-booking-id="${booking.id}"
+                                title="Edit Booking"
+                                ${booking.deleteStatus ? 'disabled' : ''}
                             >
                                 <i class="fas fa-edit text-primary"></i>
                             </button>
                             <button 
                                 class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-                                data-reservation-id="${reservation.id}"
-                                title="Delete Reservation"
+                                data-booking-id="${booking.id}"
+                                title="Delete Booking"
+                                ${booking.deleteStatus ? 'disabled' : ''}
                             >
                                 <i class="fas fa-trash text-destructive"></i>
                             </button>
@@ -270,23 +282,12 @@ class AdminReservationList {
         }).join('');
     }
 
-    getStatusClass(status) {
-        const classes = {
-            'PENDING': 'bg-yellow-100 text-yellow-800',
-            'CONFIRMED': 'bg-green-100 text-green-800',
-            'CANCELLED': 'bg-red-100 text-red-800',
-            'COMPLETED': 'bg-blue-100 text-blue-800'
-        };
-        return classes[status] || 'bg-gray-100 text-gray-800';
-    }
+    showViewModal(bookingId) {
+        const booking = this.bookings.find(b => b.id == bookingId);
+        if (!booking) return;
 
-    showViewModal(reservationId) {
-        const reservation = this.reservations.find(r => r.id == reservationId);
-        if (!reservation) return;
+        this.currentBookingId = bookingId;
 
-        this.currentReservationId = reservationId;
-
-        const booking = reservation.booking || {};
         const schedule = booking.schedule || {};
         const passenger = booking.passenger || {};
 
@@ -304,11 +305,11 @@ class AdminReservationList {
             hour12: true
         }) : 'N/A';
 
-        const formattedCreatedAt = reservation.createdAt ? new Date(reservation.createdAt).toLocaleString() : 'N/A';
-        const formattedUpdatedAt = reservation.updatedAt ? new Date(reservation.updatedAt).toLocaleString() : 'N/A';
+        const formattedCreatedAt = booking.createdAt ? new Date(booking.createdAt).toLocaleString() : 'N/A';
+        const formattedUpdatedAt = booking.updatedAt ? new Date(booking.updatedAt).toLocaleString() : 'N/A';
 
         // Populate modal content
-        document.getElementById('viewReservationId').textContent = `Reservation #${reservation.id}`;
+        document.getElementById('viewBookingId').textContent = `Booking #${booking.id}`;
         document.getElementById('viewPassengerName').textContent = `${passenger.firstName || ''} ${passenger.lastName || ''}`;
         document.getElementById('viewPassengerEmail').textContent = passenger.email || 'N/A';
         document.getElementById('viewPassengerContact').textContent = passenger.contactNumber || 'N/A';
@@ -316,13 +317,13 @@ class AdminReservationList {
         document.getElementById('viewTrainType').textContent = schedule.trainType || 'N/A';
         document.getElementById('viewRoute').textContent = `${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}`;
         document.getElementById('viewSchedule').textContent = `${formattedDate} at ${formattedTime}`;
-        document.getElementById('viewBookingNotes').textContent = booking.additionalNotes || 'None provided';
-        document.getElementById('viewAdultSeats').textContent = reservation.numOfAdultSeats || 0;
-        document.getElementById('viewChildSeats').textContent = reservation.numOfChildrenSeats || 0;
-        document.getElementById('viewTrainBoxClass').textContent = reservation.trainBoxClass || 'N/A';
-        document.getElementById('viewTotalBill').textContent = `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`;
-        document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${this.getStatusClass(reservation.status)}`;
-        document.getElementById('viewStatus').textContent = reservation.status || 'N/A';
+        document.getElementById('viewClassType').textContent = booking.classType ? booking.classType.toLowerCase().replace('_', ' ') : 'economy';
+        document.getElementById('viewSeatCount').textContent = `${booking.seatCount || 1} seat${booking.seatCount !== 1 ? 's' : ''}`;
+        document.getElementById('viewNotes').textContent = booking.additionalNotes || 'None provided';
+        document.getElementById('viewStatus').className = `inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            booking.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+        }`;
+        document.getElementById('viewStatus').textContent = booking.deleteStatus ? 'Deleted' : 'Active';
         document.getElementById('viewCreatedAt').textContent = formattedCreatedAt;
         document.getElementById('viewUpdatedAt').textContent = formattedUpdatedAt;
 
@@ -331,46 +332,38 @@ class AdminReservationList {
     }
 
     hideViewModal() {
-        this.currentReservationId = null;
+        this.currentBookingId = null;
         this.elements.viewModal.classList.add('hidden');
         document.body.style.overflow = 'auto';
     }
 
-    showEditModal(reservationId) {
-        const reservation = this.reservations.find(r => r.id == reservationId);
-        if (!reservation) return;
+    showEditModal(bookingId) {
+        const booking = this.bookings.find(b => b.id == bookingId);
+        if (!booking) return;
 
-        this.currentReservationId = reservationId;
+        this.currentBookingId = bookingId;
 
-        // Populate form fields
-        document.getElementById('editNumOfAdultSeats').value = reservation.numOfAdultSeats || 1;
-        document.getElementById('editNumOfChildrenSeats').value = reservation.numOfChildrenSeats || 0;
-        document.getElementById('editTrainBoxClass').value = reservation.trainBoxClass || 'Economy';
-        document.getElementById('editTotalBill').value = reservation.totalBill || 0;
-        document.getElementById('editStatus').value = reservation.status || 'PENDING';
-
-        // Calculate total bill
-        this.calculateTotalBill();
+        document.getElementById('editAdditionalNotes').value = booking.additionalNotes || '';
 
         this.elements.editModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
 
     hideEditModal() {
-        this.currentReservationId = null;
+        this.currentBookingId = null;
         this.elements.editForm.reset();
         this.elements.editModal.classList.add('hidden');
         document.body.style.overflow = 'auto';
     }
 
-    showDeleteModal(reservationId) {
-        this.deleteReservationId = reservationId;
+    showDeleteModal(bookingId) {
+        this.deleteBookingId = bookingId;
         this.elements.deleteModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
 
     hideDeleteModal() {
-        this.deleteReservationId = null;
+        this.deleteBookingId = null;
         this.elements.deleteModal.classList.add('hidden');
         document.body.style.overflow = 'auto';
     }
@@ -390,55 +383,15 @@ class AdminReservationList {
         }
     }
 
-    calculateTotalBill() {
-        const adultSeats = parseInt(document.getElementById('editNumOfAdultSeats').value) || 0;
-        const childSeats = parseInt(document.getElementById('editNumOfChildrenSeats').value) || 0;
-        const trainBoxClass = document.getElementById('editTrainBoxClass').value;
-
-        // Base prices per seat type
-        const adultPriceMap = {
-            'Economy': 500,
-            'Business': 1200,
-            'First Class': 2000,
-            'Luxury': 3000
-        };
-
-        const childDiscount = 0.5; // 50% discount for children
-
-        const adultPrice = adultPriceMap[trainBoxClass] || 500;
-        const childPrice = adultPrice * childDiscount;
-
-        const total = (adultSeats * adultPrice) + (childSeats * childPrice);
-        document.getElementById('editTotalBill').value = total.toFixed(2);
-    }
-
     async handleEditSubmit(e) {
         e.preventDefault();
 
-        if (!this.currentReservationId) {
-            this.showError('No reservation selected for editing.');
+        if (!this.currentBookingId) {
+            this.showError('No booking selected for editing.');
             return;
         }
 
-        const formData = new FormData(this.elements.editForm);
-        const updateData = {
-            numOfAdultSeats: parseInt(formData.get('numOfAdultSeats')) || 0,
-            numOfChildrenSeats: parseInt(formData.get('numOfChildrenSeats')) || 0,
-            trainBoxClass: formData.get('trainBoxClass'),
-            totalBill: parseFloat(formData.get('totalBill')) || 0,
-            status: formData.get('status')
-        };
-
-        // Validate required fields
-        if (updateData.numOfAdultSeats <= 0) {
-            this.showError('Number of adult seats must be greater than 0.');
-            return;
-        }
-
-        if (updateData.numOfChildrenSeats < 0) {
-            this.showError('Number of children seats cannot be negative.');
-            return;
-        }
+        const additionalNotes = document.getElementById('editAdditionalNotes').value.trim() || null;
 
         const saveBtn = document.getElementById('saveEditBtn');
         const originalText = saveBtn.innerHTML;
@@ -446,21 +399,23 @@ class AdminReservationList {
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
         try {
-            const response = await fetch(`/api/reservations/${this.currentReservationId}`, {
+            const response = await fetch(`/api/bookings/${this.currentBookingId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(updateData)
+                body: JSON.stringify({
+                    additionalNotes: additionalNotes
+                })
             });
 
             if (response.ok) {
-                this.showSuccess('Reservation updated successfully!');
+                this.showSuccess('Booking updated successfully!');
                 this.hideEditModal();
-                this.loadReservations();
+                this.loadBookings();
             } else {
                 const error = await response.text();
-                this.showError(error || 'Failed to update reservation.');
+                this.showError(error || 'Failed to update booking.');
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
@@ -471,22 +426,22 @@ class AdminReservationList {
     }
 
     async confirmDelete() {
-        if (!this.deleteReservationId) return;
+        if (!this.deleteBookingId) return;
 
         this.setDeleteLoading(true);
 
         try {
-            const response = await fetch(`/api/reservations/${this.deleteReservationId}`, {
+            const response = await fetch(`/api/bookings/${this.deleteBookingId}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                this.showSuccess('Reservation deleted successfully!');
+                this.showSuccess('Booking deleted successfully!');
                 this.hideDeleteModal();
-                this.loadReservations();
+                this.loadBookings();
             } else {
                 const error = await response.text();
-                this.showError(error || 'Failed to delete reservation');
+                this.showError(error || 'Failed to delete booking');
             }
         } catch (error) {
             this.showError('Network error. Please try again.');
@@ -518,7 +473,7 @@ class AdminReservationList {
             const doc = new jsPDF('l', 'mm', 'a4');
 
             doc.setFontSize(20);
-            doc.text('Reservations Report', 14, 22);
+            doc.text('Bookings Report', 14, 22);
 
             doc.setFontSize(10);
             doc.text(`Generated on: ${new Date().toLocaleDateString('en-US', {
@@ -529,8 +484,7 @@ class AdminReservationList {
                 minute: '2-digit'
             })}`, 14, 30);
 
-            const tableData = this.filteredReservations.map(reservation => {
-                const booking = reservation.booking || {};
+            const tableData = this.filteredBookings.map(booking => {
                 const schedule = booking.schedule || {};
                 const passenger = booking.passenger || {};
 
@@ -542,26 +496,25 @@ class AdminReservationList {
                 }) : 'N/A';
 
                 return [
-                    `#${reservation.id}`,
+                    `#${booking.id}`,
                     `${passenger.firstName || ''} ${passenger.lastName || ''}`,
                     passenger.email || 'N/A',
                     schedule.trainName || 'N/A',
                     `${schedule.fromCity || 'N/A'} → ${schedule.toCity || 'N/A'}`,
-                    `${reservation.numOfAdultSeats || 0}A/${reservation.numOfChildrenSeats || 0}C`,
-                    reservation.trainBoxClass || 'N/A',
-                    `Rs. ${reservation.totalBill ? parseFloat(reservation.totalBill).toLocaleString() : '0'}`,
-                    reservation.paidMethod || 'N/A',
-                    reservation.status || 'N/A'
+                    `${formattedDate} ${formattedTime}`,
+                    booking.classType || 'ECONOMY',
+                    booking.seatCount || 1,
+                    booking.deleteStatus ? 'Deleted' : 'Active'
                 ];
             });
 
             doc.autoTable({
-                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Seats', 'Class', 'Amount', 'Payment', 'Status']],
+                head: [['ID', 'Passenger', 'Email', 'Train', 'Route', 'Schedule', 'Class', 'Seats', 'Status']],
                 body: tableData,
                 startY: 40,
                 styles: {
-                    fontSize: 9,
-                    cellPadding: 3,
+                    fontSize: 8,
+                    cellPadding: 2,
                 },
                 headStyles: {
                     fillColor: [41, 41, 41],
@@ -569,20 +522,19 @@ class AdminReservationList {
                     fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: 20 },
-                    1: { cellWidth: 35 },
-                    2: { cellWidth: 40 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 35 },
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 30 },
                     5: { cellWidth: 25 },
-                    6: { cellWidth: 25 },
-                    7: { cellWidth: 30 },
-                    8: { cellWidth: 30 },
-                    9: { cellWidth: 25 }
+                    6: { cellWidth: 20 },
+                    7: { cellWidth: 15 },
+                    8: { cellWidth: 20 }
                 }
             });
 
-            doc.save(`reservations-report-${new Date().toISOString().split('T')[0]}.pdf`);
+            doc.save(`bookings-report-${new Date().toISOString().split('T')[0]}.pdf`);
             this.showSuccess('PDF exported successfully!');
 
         } catch (error) {
@@ -637,5 +589,5 @@ class AdminReservationList {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new AdminReservationList();
+    new AdminBookingList();
 });

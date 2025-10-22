@@ -70,6 +70,18 @@
             justify-content: center;
             z-index: 1000;
         }
+        .class-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .class-economy { background-color: #dcfce7; color: #166534; }
+        .class-business { background-color: #dbeafe; color: #1e40af; }
+        .class-first_class { background-color: #fef3c7; color: #92400e; }
+        .class-luxury { background-color: #fae8ff; color: #86198f; }
     </style>
 </head>
 <body class="min-h-screen bg-gradient train-pattern">
