@@ -15,4 +15,6 @@ public interface PassengerRepo extends JpaRepository<PassengerModel, Long> {
     List<PassengerModel> findByDeleteStatus(Boolean deleteStatus);
 
     Optional<PassengerModel> findByIdAndDeleteStatus(Long id, Boolean deleteStatus);
+
+    Optional<PassengerModel> findByResetToken(String resetToken);
 }

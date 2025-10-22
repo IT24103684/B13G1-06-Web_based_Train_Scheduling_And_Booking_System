@@ -239,4 +239,53 @@ public class PassengerDTOS {
             this.password = password;
         }
     }
+
+    public static class ForgotPasswordRequest {
+        private String email;
+
+        // getters and setters
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+    }
+
+    public static class VerifyCodeRequest {
+        private String email;
+        private String code;
+
+        // getters and setters
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getCode() { return code; }
+        public void setCode(String code) { this.code = code; }
+    }
+
+    public static class ResetPasswordRequest {
+        private String token;
+        private String newPassword;
+
+        // getters and setters
+        public String getToken() { return token; }
+        public void setToken(String token) { this.token = token; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+    }
+
+    public static class PasswordResetResponse {
+        private String message;
+        private String token; // For verification step
+
+        // constructors
+        public PasswordResetResponse() {}
+        public PasswordResetResponse(String message) { this.message = message; }
+        public PasswordResetResponse(String message, String token) {
+            this.message = message;
+            this.token = token;
+        }
+
+        // getters and setters
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+        public String getToken() { return token; }
+        public void setToken(String token) { this.token = token; }
+    }
 }
