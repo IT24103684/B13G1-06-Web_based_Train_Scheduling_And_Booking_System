@@ -13,6 +13,11 @@ public class ScheduleDTOS {
         private LocalTime time;
         private String trainType;
         private String trainName;
+        private Integer availableEconomySeats;
+        private Integer availableBusinessSeats;
+        private Integer availableFirstClassSeats;
+        private Integer availableLuxurySeats;
+
 
         public CreateScheduleDTO() {}
 
@@ -63,6 +68,38 @@ public class ScheduleDTOS {
         public void setTrainName(String trainName) {
             this.trainName = trainName;
         }
+
+        public Integer getAvailableEconomySeats() {
+            return availableEconomySeats;
+        }
+
+        public void setAvailableEconomySeats(Integer availableEconomySeats) {
+            this.availableEconomySeats = availableEconomySeats;
+        }
+
+        public Integer getAvailableBusinessSeats() {
+            return availableBusinessSeats;
+        }
+
+        public void setAvailableBusinessSeats(Integer availableBusinessSeats) {
+            this.availableBusinessSeats = availableBusinessSeats;
+        }
+
+        public Integer getAvailableFirstClassSeats() {
+            return availableFirstClassSeats;
+        }
+
+        public void setAvailableFirstClassSeats(Integer availableFirstClassSeats) {
+            this.availableFirstClassSeats = availableFirstClassSeats;
+        }
+
+        public Integer getAvailableLuxurySeats() {
+            return availableLuxurySeats;
+        }
+
+        public void setAvailableLuxurySeats(Integer availableLuxurySeats) {
+            this.availableLuxurySeats = availableLuxurySeats;
+        }
     }
 
     public static class UpdateScheduleDTO {
@@ -72,6 +109,10 @@ public class ScheduleDTOS {
         private LocalTime time;
         private String trainType;
         private String trainName;
+        private Integer availableEconomySeats;
+        private Integer availableBusinessSeats;
+        private Integer availableFirstClassSeats;
+        private Integer availableLuxurySeats;
 
         public UpdateScheduleDTO() {}
 
@@ -122,6 +163,38 @@ public class ScheduleDTOS {
         public void setTrainName(String trainName) {
             this.trainName = trainName;
         }
+
+        public Integer getAvailableEconomySeats() {
+            return availableEconomySeats;
+        }
+
+        public void setAvailableEconomySeats(Integer availableEconomySeats) {
+            this.availableEconomySeats = availableEconomySeats;
+        }
+
+        public Integer getAvailableBusinessSeats() {
+            return availableBusinessSeats;
+        }
+
+        public void setAvailableBusinessSeats(Integer availableBusinessSeats) {
+            this.availableBusinessSeats = availableBusinessSeats;
+        }
+
+        public Integer getAvailableFirstClassSeats() {
+            return availableFirstClassSeats;
+        }
+
+        public void setAvailableFirstClassSeats(Integer availableFirstClassSeats) {
+            this.availableFirstClassSeats = availableFirstClassSeats;
+        }
+
+        public Integer getAvailableLuxurySeats() {
+            return availableLuxurySeats;
+        }
+
+        public void setAvailableLuxurySeats(Integer availableLuxurySeats) {
+            this.availableLuxurySeats = availableLuxurySeats;
+        }
     }
 
     public static class ScheduleResponseDTO {
@@ -132,6 +205,10 @@ public class ScheduleDTOS {
         private LocalTime time;
         private String trainType;
         private String trainName;
+        private Integer availableEconomySeats;
+        private Integer availableBusinessSeats;
+        private Integer availableFirstClassSeats;
+        private Integer availableLuxurySeats;
         private Boolean deleteStatus;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
@@ -216,6 +293,38 @@ public class ScheduleDTOS {
 
         public void setUpdatedAt(LocalDateTime updatedAt) {
             this.updatedAt = updatedAt;
+        }
+
+        public Integer getAvailableEconomySeats() {
+            return availableEconomySeats;
+        }
+
+        public void setAvailableEconomySeats(Integer availableEconomySeats) {
+            this.availableEconomySeats = availableEconomySeats;
+        }
+
+        public Integer getAvailableBusinessSeats() {
+            return availableBusinessSeats;
+        }
+
+        public void setAvailableBusinessSeats(Integer availableBusinessSeats) {
+            this.availableBusinessSeats = availableBusinessSeats;
+        }
+
+        public Integer getAvailableFirstClassSeats() {
+            return availableFirstClassSeats;
+        }
+
+        public void setAvailableFirstClassSeats(Integer availableFirstClassSeats) {
+            this.availableFirstClassSeats = availableFirstClassSeats;
+        }
+
+        public Integer getAvailableLuxurySeats() {
+            return availableLuxurySeats;
+        }
+
+        public void setAvailableLuxurySeats(Integer availableLuxurySeats) {
+            this.availableLuxurySeats = availableLuxurySeats;
         }
     }
 }

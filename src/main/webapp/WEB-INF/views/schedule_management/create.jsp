@@ -156,6 +156,93 @@
                 </div>
             </div>
 
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-medium text-foreground mb-4">Class Availability</h3>
+                <p class="text-sm text-muted-foreground mb-4">Set the number of available seats for each class</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Economy Class -->
+                    <div class="space-y-2">
+                        <label for="availableEconomySeats" class="text-sm font-medium text-foreground">
+                            <i class="fas fa-chair text-green-600 mr-2"></i>
+                            Economy Class Seats
+                        </label>
+                        <input
+                                type="number"
+                                id="availableEconomySeats"
+                                name="availableEconomySeats"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                                placeholder="50"
+                                min="0"
+                                max="200"
+                                value="50"
+                        >
+                        <div class="error-message text-sm text-destructive hidden"></div>
+                        <p class="text-xs text-muted-foreground">Price: Rs. 500 per seat</p>
+                    </div>
+
+                    <!-- Business Class -->
+                    <div class="space-y-2">
+                        <label for="availableBusinessSeats" class="text-sm font-medium text-foreground">
+                            <i class="fas fa-couch text-blue-600 mr-2"></i>
+                            Business Class Seats
+                        </label>
+                        <input
+                                type="number"
+                                id="availableBusinessSeats"
+                                name="availableBusinessSeats"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                                placeholder="30"
+                                min="0"
+                                max="100"
+                                value="30"
+                        >
+                        <div class="error-message text-sm text-destructive hidden"></div>
+                        <p class="text-xs text-muted-foreground">Price: Rs. 1,200 per seat</p>
+                    </div>
+
+                    <!-- First Class -->
+                    <div class="space-y-2">
+                        <label for="availableFirstClassSeats" class="text-sm font-medium text-foreground">
+                            <i class="fas fa-crown text-purple-600 mr-2"></i>
+                            First Class Seats
+                        </label>
+                        <input
+                                type="number"
+                                id="availableFirstClassSeats"
+                                name="availableFirstClassSeats"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                                placeholder="20"
+                                min="0"
+                                max="50"
+                                value="20"
+                        >
+                        <div class="error-message text-sm text-destructive hidden"></div>
+                        <p class="text-xs text-muted-foreground">Price: Rs. 2,000 per seat</p>
+                    </div>
+
+                    <!-- Luxury Class -->
+                    <div class="space-y-2">
+                        <label for="availableLuxurySeats" class="text-sm font-medium text-foreground">
+                            <i class="fas fa-gem text-yellow-600 mr-2"></i>
+                            Luxury Class Seats
+                        </label>
+                        <input
+                                type="number"
+                                id="availableLuxurySeats"
+                                name="availableLuxurySeats"
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                                placeholder="10"
+                                min="0"
+                                max="20"
+                                value="10"
+                        >
+                        <div class="error-message text-sm text-destructive hidden"></div>
+                        <p class="text-xs text-muted-foreground">Price: Rs. 3,000 per seat</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-end space-x-4 pt-6">
                 <button
                         type="button"
