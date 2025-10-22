@@ -164,15 +164,22 @@ public class PaymentService {
         responseDTO.setCreatedAt(payment.getCreatedAt());
         responseDTO.setUpdatedAt(payment.getUpdatedAt());
 
+        // 🟢 BOOKING INFO
         PaymentDTOS.BookingInfo bookingInfo = new PaymentDTOS.BookingInfo();
         bookingInfo.setId(payment.getBooking().getId());
         bookingInfo.setAdditionalNotes(payment.getBooking().getAdditionalNotes());
 
-        // ADD THESE LINES - Seat and class information
-        bookingInfo.setNumberOfAdults(payment.getReservation().getNumOfAdultSeats());
-        bookingInfo.setNumberOfChildren(payment.getReservation().getNumOfChildrenSeats());
-        bookingInfo.setClassType(payment.getReservation().getTrainBoxClass());
+        // ✅ Add class type and seat count (this fixes N/A issue)
+        bookingInfo.setClassType(payment.getBooking().getClassType());
+        bookingInfo.setSeatCount(payment.getBooking().getSeatCount());
 
+        // Seat breakdown
+        if (payment.getReservation() != null) {
+            bookingInfo.setNumberOfAdults(payment.getReservation().getNumOfAdultSeats());
+            bookingInfo.setNumberOfChildren(payment.getReservation().getNumOfChildrenSeats());
+        }
+
+        // Passenger info
         PaymentDTOS.PassengerInfo passengerInfo = new PaymentDTOS.PassengerInfo();
         passengerInfo.setId(payment.getBooking().getPassenger().getId());
         passengerInfo.setFirstName(payment.getBooking().getPassenger().getFirstName());
@@ -181,6 +188,7 @@ public class PaymentService {
         passengerInfo.setContactNumber(payment.getBooking().getPassenger().getContactNumber());
         bookingInfo.setPassenger(passengerInfo);
 
+        // Schedule info
         PaymentDTOS.ScheduleInfo scheduleInfo = new PaymentDTOS.ScheduleInfo();
         scheduleInfo.setId(payment.getBooking().getSchedule().getId());
         scheduleInfo.setFromCity(payment.getBooking().getSchedule().getFromCity());
@@ -192,7 +200,8 @@ public class PaymentService {
         bookingInfo.setSchedule(scheduleInfo);
 
         responseDTO.setBooking(bookingInfo);
-
         return responseDTO;
     }
+
+
 }
