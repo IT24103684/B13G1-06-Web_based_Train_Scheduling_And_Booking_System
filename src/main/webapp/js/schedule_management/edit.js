@@ -37,8 +37,81 @@ class ScheduleEdit {
         }
         this.setMinDate();
         this.bindEvents();
+        this.initNotifications(); // ADD THIS LINE
     }
 
+    // ADD THIS METHOD
+    initNotifications() {
+        console.log('🔔 Initializing notifications for edit page...');
+        this.fetchNotifications();
+        setInterval(() => this.fetchNotifications(), 5000);
+    }
+
+    // ADD THIS METHOD
+    fetchNotifications() {
+        fetch('/api/schedules/notifications')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load notifications');
+                return res.json();
+            })
+            .then(data => {
+                const loadingEl = document.getElementById('loadingNotifications');
+                const listEl = document.getElementById('notificationList');
+                const emptyEl = document.getElementById('emptyNotifications');
+
+                if (loadingEl) loadingEl.classList.add('hidden');
+
+                if (data && Array.isArray(data) && data.length > 0) {
+                    if (listEl) {
+                        listEl.classList.remove('hidden');
+                        listEl.innerHTML = data.map(msg => {
+                            let icon = 'fas fa-bell';
+                            let bgColor = 'bg-white';
+                            let textColor = 'text-gray-800';
+
+                            if (msg.includes('NEW Schedule')) {
+                                icon = 'fas fa-plus-circle';
+                                bgColor = 'bg-green-50';
+                                textColor = 'text-green-800';
+                            } else if (msg.includes('UPDATED')) {
+                                icon = 'fas fa-edit';
+                                bgColor = 'bg-blue-50';
+                                textColor = 'text-blue-800';
+                            } else if (msg.includes('CANCELLED')) {
+                                icon = 'fas fa-trash';
+                                bgColor = 'bg-red-50';
+                                textColor = 'text-red-800';
+                            }
+
+                            return `
+                                <div class="p-3 ${bgColor} ${textColor} rounded border border-gray-200 text-sm shadow-sm flex items-start mb-2">
+                                    <i class="${icon} mr-2 mt-0.5 flex-shrink-0"></i>
+                                    <span class="flex-1">${msg}</span>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                    if (emptyEl) emptyEl.classList.add('hidden');
+                } else {
+                    if (listEl) listEl.classList.add('hidden');
+                    if (emptyEl) emptyEl.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('🔔 Failed to load notifications:', error);
+                const loadingEl = document.getElementById('loadingNotifications');
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <div class="text-center text-red-500">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Failed to load notifications
+                        </div>
+                    `;
+                }
+            });
+    }
+
+    // ... REST OF YOUR EXISTING ScheduleEdit METHODS ...
     getScheduleIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         this.scheduleId = urlParams.get('scheduleId');
@@ -80,7 +153,7 @@ class ScheduleEdit {
         this.showState('loadingState');
 
         try {
-            const response = await fetch(/api/schedules/${this.scheduleId});
+            const response = await fetch(`/api/schedules/${this.scheduleId}`);
 
             if (!response.ok) {
                 if (response.status === 404) {
@@ -91,7 +164,6 @@ class ScheduleEdit {
 
             const schedule = await response.json();
 
-            // Check if schedule is deleted
             if (schedule.deleteStatus) {
                 this.showError('This schedule has been deleted and cannot be edited');
                 return;
@@ -110,14 +182,17 @@ class ScheduleEdit {
         document.getElementById('fromCity').value = schedule.fromCity || '';
         document.getElementById('toCity').value = schedule.toCity || '';
         document.getElementById('date').value = schedule.date || '';
-        document.getElementById('time').value = schedule.time || '';
+
+        const timeValue = schedule.time ?
+            (schedule.time.length > 5 ? schedule.time.substring(0, 5) : schedule.time) : '';
+        document.getElementById('time').value = timeValue;
+
         document.getElementById('trainName').value = schedule.trainName || '';
         document.getElementById('trainType').value = schedule.trainType || '';
         document.getElementById('availableEconomySeats').value = schedule.availableEconomySeats || 50;
         document.getElementById('availableBusinessSeats').value = schedule.availableBusinessSeats || 30;
         document.getElementById('availableFirstClassSeats').value = schedule.availableFirstClassSeats || 20;
         document.getElementById('availableLuxurySeats').value = schedule.availableLuxurySeats || 10;
-
 
         this.elements.createdAt.textContent = this.formatDateTime(schedule.createdAt);
         this.elements.updatedAt.textContent = this.formatDateTime(schedule.updatedAt);
@@ -130,7 +205,7 @@ class ScheduleEdit {
         const value = input.value.trim();
 
         if (!value) {
-            this.showFieldError(errorDiv, ${this.formatFieldName(fieldName)} is required);
+            this.showFieldError(errorDiv, `${this.formatFieldName(fieldName)} is required`);
             return false;
         }
 
@@ -252,11 +327,19 @@ class ScheduleEdit {
             availableLuxurySeats: parseInt(document.getElementById('availableLuxurySeats').value) || 0
         };
 
-        return (
+        const normalizeTime = (timeString) => {
+            if (!timeString) return '';
+            return timeString.length > 5 ? timeString.substring(0, 5) : timeString;
+        };
+
+        const currentTime = currentData.time;
+        const originalTime = normalizeTime(this.originalData.time);
+
+        const hasChanges = (
             currentData.fromCity !== this.originalData.fromCity ||
             currentData.toCity !== this.originalData.toCity ||
             currentData.date !== this.originalData.date ||
-            currentData.time !== this.originalData.time ||
+            currentTime !== originalTime ||
             currentData.trainName !== this.originalData.trainName ||
             currentData.trainType !== this.originalData.trainType ||
             currentData.availableEconomySeats !== this.originalData.availableEconomySeats ||
@@ -264,6 +347,8 @@ class ScheduleEdit {
             currentData.availableFirstClassSeats !== this.originalData.availableFirstClassSeats ||
             currentData.availableLuxurySeats !== this.originalData.availableLuxurySeats
         );
+
+        return hasChanges;
     }
 
     setLoading(loading) {
@@ -307,9 +392,9 @@ class ScheduleEdit {
         };
 
         try {
-            const response = await fetch(/api/schedules/${this.scheduleId}, {
+            const response = await fetch(`/api/schedules/${this.scheduleId}`, {
                 method: 'PUT',
-                    headers: {
+                headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(scheduleData)
