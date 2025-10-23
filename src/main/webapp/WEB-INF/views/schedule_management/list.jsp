@@ -88,6 +88,16 @@
         </div>
 
         <div class="p-6">
+            <!-- Notifications Section -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="text-sm font-medium text-blue-800 mb-2">
+                    <i class="fas fa-bell mr-2"></i>Recent Activity
+                </h3>
+                <div id="notifications" class="text-sm text-blue-700 space-y-1 max-h-32 overflow-y-auto">
+                    <div class="text-center text-blue-600">Loading notifications...</div>
+                </div>
+            </div>
+
             <div class="mb-6 flex flex-col sm:flex-row gap-4">
                 <div class="relative flex-1 max-w-md">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -190,8 +200,26 @@
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-foreground">Confirm Delete</h3>
                     <p class="text-sm text-muted-foreground mt-2">
-                        Are you sure you want to delete this schedule? This action cannot be undone.
+                        Are you sure you want to delete this schedule?
                     </p>
+
+                    <!-- Add hard delete option -->
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <label class="flex items-start space-x-2">
+                            <input
+                                    type="checkbox"
+                                    id="hardDeleteCheckbox"
+                                    class="mt-1 rounded border-gray-300 text-destructive focus:ring-destructive"
+                            >
+                            <div>
+                                <span class="text-sm font-medium text-foreground">Permanently delete (hard delete)</span>
+                                <p class="text-xs text-muted-foreground mt-1">
+                                    Hard delete will permanently remove the schedule and all related bookings.
+                                    This action cannot be undone.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="flex items-center justify-end space-x-3 mt-6">
@@ -203,7 +231,7 @@
                 </button>
                 <button
                         id="confirmDeleteBtn"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 min-w-[80px]"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 min-w-[120px]"
                 >
                     <span class="button-text">Delete</span>
                     <i class="fas fa-spinner fa-spin ml-2 hidden loading-spinner"></i>

@@ -243,6 +243,22 @@
                 </div>
             </div>
 
+            <!-- Notifications Section -->
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-medium text-foreground mb-4">
+                    <i class="fas fa-bell mr-2"></i>Recent Notifications
+                </h3>
+                <div id="notifications" class="border border-gray-200 rounded-md p-4 max-h-64 overflow-y-auto bg-gray-50">
+                    <div class="text-center text-gray-500" id="loadingNotifications">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Loading notifications...
+                    </div>
+                    <div id="notificationList" class="hidden space-y-2"></div>
+                    <div id="emptyNotifications" class="hidden text-center text-gray-500">
+                        <i class="fas fa-bell-slash mr-2"></i>No notifications yet
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-end space-x-4 pt-6">
                 <button
                         type="button"
@@ -265,5 +281,6 @@
 </div>
 
 <script src="/js/schedule_management/create.js"></script>
+
 </body>
 </html>

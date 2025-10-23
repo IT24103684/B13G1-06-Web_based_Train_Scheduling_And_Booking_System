@@ -3,6 +3,7 @@ class ScheduleList {
         this.schedules = [];
         this.filteredSchedules = [];
         this.deleteScheduleId = null;
+        this.hardDelete = false;
 
         this.elements = {
             searchInput: document.getElementById('searchInput'),
@@ -16,7 +17,8 @@ class ScheduleList {
             deleteModal: document.getElementById('deleteModal'),
             cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
-            exportPdfBtn: document.getElementById('exportPdfBtn')
+            exportPdfBtn: document.getElementById('exportPdfBtn'),
+            hardDeleteCheckbox: document.getElementById('hardDeleteCheckbox')
         };
 
         this.init();
@@ -25,8 +27,83 @@ class ScheduleList {
     init() {
         this.bindEvents();
         this.loadSchedules();
+        this.initNotifications(); // ADD THIS LINE
     }
 
+    // ADD THIS METHOD
+    initNotifications() {
+        console.log('🔔 Initializing notifications for list page...');
+        this.loadNotifications();
+        setInterval(() => this.loadNotifications(), 10000);
+    }
+
+    // ADD THIS METHOD
+    loadNotifications() {
+        fetch('/api/schedules/notifications')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load notifications');
+                return res.json();
+            })
+            .then(data => {
+                const container = document.getElementById('notifications');
+                if (!container) {
+                    console.error('❌ Notifications container not found');
+                    return;
+                }
+
+                console.log('🔔 Notifications data received:', data);
+
+                if (data && Array.isArray(data) && data.length > 0) {
+                    container.innerHTML = data.slice(0, 5).map(msg => {
+                        let icon = 'fas fa-bell';
+                        let bgColor = 'bg-blue-50';
+                        let textColor = 'text-blue-800';
+
+                        if (msg.includes('NEW Schedule')) {
+                            icon = 'fas fa-plus-circle';
+                            bgColor = 'bg-green-50';
+                            textColor = 'text-green-800';
+                        } else if (msg.includes('UPDATED')) {
+                            icon = 'fas fa-edit';
+                            bgColor = 'bg-blue-50';
+                            textColor = 'text-blue-800';
+                        } else if (msg.includes('CANCELLED')) {
+                            icon = 'fas fa-trash';
+                            bgColor = 'bg-red-50';
+                            textColor = 'text-red-800';
+                        }
+
+                        return `
+                            <div class="p-3 ${bgColor} ${textColor} rounded border mb-2 text-sm flex items-start">
+                                <i class="${icon} mr-2 mt-0.5 flex-shrink-0"></i>
+                                <span class="flex-1 font-medium">${msg}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                            <div>No recent activity</div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('🔔 Failed to load notifications:', error);
+                const container = document.getElementById('notifications');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center text-red-500 py-4">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <div>Failed to load notifications</div>
+                        </div>
+                    `;
+                }
+            });
+    }
+
+    // ... REST OF YOUR EXISTING ScheduleList METHODS ...
     bindEvents() {
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
@@ -35,6 +112,13 @@ class ScheduleList {
         this.elements.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
         this.elements.exportPdfBtn.addEventListener('click', () => this.exportToPDF());
 
+        if (this.elements.hardDeleteCheckbox) {
+            this.elements.hardDeleteCheckbox.addEventListener('change', (e) => {
+                this.hardDelete = e.target.checked;
+                this.updateDeleteButtonText();
+            });
+        }
+
         document.addEventListener('click', (e) => {
             if (e.target.closest('.delete-btn')) {
                 const scheduleId = e.target.closest('.delete-btn').dataset.scheduleId;
@@ -42,7 +126,7 @@ class ScheduleList {
             }
             if (e.target.closest('.edit-btn')) {
                 const scheduleId = e.target.closest('.edit-btn').dataset.scheduleId;
-                window.location.href = /edit-schedule?scheduleId=${scheduleId};
+                window.location.href = `/edit-schedule?scheduleId=${scheduleId}`;
             }
         });
     }
@@ -121,12 +205,13 @@ class ScheduleList {
         this.showState('scheduleTable');
 
         this.elements.scheduleTableBody.innerHTML = this.filteredSchedules.map(schedule => `
-            <tr class="border-b transition-colors hover:bg-muted/50">
+            <tr class="border-b transition-colors hover:bg-muted/50 ${schedule.deleteStatus ? 'opacity-60 bg-gray-50' : ''}">
                 <td class="p-4 align-middle">
                     <div>
                         <div class="font-medium text-foreground">
                             <i class="fas fa-arrow-right text-muted-foreground mx-2"></i>
                             ${this.escapeHtml(schedule.fromCity)} → ${this.escapeHtml(schedule.toCity)}
+                            ${schedule.deleteStatus ? '<span class="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Deleted</span>' : ''}
                         </div>
                     </div>
                 </td>
@@ -152,16 +237,18 @@ class ScheduleList {
                 <td class="p-4 align-middle text-right">
                     <div class="flex items-center justify-end space-x-2">
                         <button 
-                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            class="edit-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 ${schedule.deleteStatus ? 'opacity-50 cursor-not-allowed' : ''}"
                             data-schedule-id="${schedule.id}"
-                            title="Edit Schedule"
+                            title="${schedule.deleteStatus ? 'Cannot edit deleted schedule' : 'Edit Schedule'}"
+                            ${schedule.deleteStatus ? 'disabled' : ''}
                         >
                             <i class="fas fa-edit text-primary"></i>
                         </button>
                         <button 
-                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
+                            class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 ${schedule.deleteStatus ? 'opacity-50 cursor-not-allowed' : ''}"
                             data-schedule-id="${schedule.id}"
-                            title="Delete Schedule"
+                            title="${schedule.deleteStatus ? 'Schedule already deleted' : 'Delete Schedule'}"
+                            ${schedule.deleteStatus ? 'disabled' : ''}
                         >
                             <i class="fas fa-trash text-destructive"></i>
                         </button>
@@ -182,14 +269,29 @@ class ScheduleList {
 
     showDeleteModal(scheduleId) {
         this.deleteScheduleId = scheduleId;
+        this.hardDelete = false;
+
+        if (this.elements.hardDeleteCheckbox) {
+            this.elements.hardDeleteCheckbox.checked = false;
+        }
+
+        this.updateDeleteButtonText();
         this.elements.deleteModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
 
     hideDeleteModal() {
         this.deleteScheduleId = null;
+        this.hardDelete = false;
         this.elements.deleteModal.classList.add('hidden');
         document.body.style.overflow = 'auto';
+    }
+
+    updateDeleteButtonText() {
+        const buttonText = this.elements.confirmDeleteBtn.querySelector('.button-text');
+        if (buttonText) {
+            buttonText.textContent = this.hardDelete ? 'Delete Permanently' : 'Delete';
+        }
     }
 
     setDeleteLoading(loading) {
@@ -198,11 +300,11 @@ class ScheduleList {
 
         if (loading) {
             this.elements.confirmDeleteBtn.disabled = true;
-            buttonText.textContent = 'Deleting...';
+            buttonText.textContent = this.hardDelete ? 'Deleting Permanently...' : 'Deleting...';
             loadingSpinner.classList.remove('hidden');
         } else {
             this.elements.confirmDeleteBtn.disabled = false;
-            buttonText.textContent = 'Delete';
+            this.updateDeleteButtonText();
             loadingSpinner.classList.add('hidden');
         }
     }
@@ -213,14 +315,20 @@ class ScheduleList {
         this.setDeleteLoading(true);
 
         try {
-            const response = await fetch(/api/schedules/${this.deleteScheduleId}, {
+            const url = `/api/schedules/${this.deleteScheduleId}${this.hardDelete ? '?hardDelete=true' : ''}`;
+
+            const response = await fetch(url, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                this.showSuccess('Schedule deleted successfully!');
+                const message = await response.text();
+                this.showSuccess(message || 'Schedule deleted successfully!');
                 this.hideDeleteModal();
                 this.loadSchedules();
+            } else if (response.status === 409) {
+                const error = await response.text();
+                this.showError(error || 'Cannot delete schedule due to existing constraints');
             } else {
                 const error = await response.text();
                 this.showError(error || 'Failed to delete schedule');
@@ -270,7 +378,7 @@ class ScheduleList {
     exportToPDF() {
         try {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for better table fit
+            const doc = new jsPDF('l', 'mm', 'a4');
 
             doc.setFontSize(20);
             doc.text('Schedule List Report', 14, 22);
@@ -285,16 +393,17 @@ class ScheduleList {
             })}`, 14, 30);
 
             const tableData = this.filteredSchedules.map(schedule => [
-                ${schedule.fromCity} → ${schedule.toCity},
-            schedule.trainName,
+                `${schedule.fromCity} → ${schedule.toCity}`,
+                schedule.trainName,
                 schedule.trainType,
                 this.formatDate(schedule.date),
                 this.formatTime(schedule.time),
-                this.formatDateTime(schedule.createdAt)
-        ]);
+                this.formatDateTime(schedule.createdAt),
+                schedule.deleteStatus ? 'Deleted' : 'Active'
+            ]);
 
             doc.autoTable({
-                head: [['Route', 'Train Name', 'Type', 'Date', 'Time', 'Created']],
+                head: [['Route', 'Train Name', 'Type', 'Date', 'Time', 'Created', 'Status']],
                 body: tableData,
                 startY: 40,
                 styles: {
@@ -307,16 +416,17 @@ class ScheduleList {
                     fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: 50 },
-                    1: { cellWidth: 40 },
-                    2: { cellWidth: 25 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 25 },
-                    5: { cellWidth: 30 }
+                    0: { cellWidth: 45 },
+                    1: { cellWidth: 35 },
+                    2: { cellWidth: 20 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 20 },
+                    5: { cellWidth: 25 },
+                    6: { cellWidth: 20 }
                 }
             });
 
-            doc.save(schedule-list-${new Date().toISOString().split('T')[0]}.pdf);
+            doc.save(`schedule-list-${new Date().toISOString().split('T')[0]}.pdf`);
             this.showSuccess('PDF exported successfully!');
 
         } catch (error) {
