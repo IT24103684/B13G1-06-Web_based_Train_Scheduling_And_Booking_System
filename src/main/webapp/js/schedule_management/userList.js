@@ -7,6 +7,9 @@ class ScheduleUserList {
         this.noResults = document.getElementById('noResults');
         this.scheduleCount = document.getElementById('scheduleCount');
 
+        // Check if user is logged in
+        this.isUserLoggedIn = this.checkUserLoginStatus();
+
         this.filters = {
             fromCity: '',
             toCity: '',
@@ -17,11 +20,42 @@ class ScheduleUserList {
         this.init();
     }
 
+    // Check if user is logged in by looking for userId in localStorage
+    checkUserLoginStatus() {
+        const userId = localStorage.getItem('userId');
+        return !!userId; // Returns true if userId exists, false otherwise
+    }
+
     init() {
         this.bindEvents();
         this.loadSchedules();
         this.setMinDate();
         this.addEnhancedStyles();
+        this.updateUIForLoginStatus();
+    }
+
+    // Update UI based on login status
+    updateUIForLoginStatus() {
+        if (!this.isUserLoggedIn) {
+            // Add a login prompt message
+            const loginPrompt = document.createElement('div');
+            loginPrompt.className = 'login-prompt bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-center animate-fade-in-up';
+            loginPrompt.innerHTML = `
+                <div class="flex items-center justify-center space-x-3">
+                    <i class="fas fa-info-circle text-yellow-600 text-xl"></i>
+                    <div>
+                        <p class="text-yellow-800 font-medium">
+                            Please <a href="/login" class="underline hover:text-yellow-900 font-bold">login</a> to book tickets
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            const scheduleHeader = document.querySelector('.bg-white\\/30');
+            if (scheduleHeader) {
+                scheduleHeader.parentNode.insertBefore(loginPrompt, scheduleHeader.nextSibling);
+            }
+        }
     }
 
     addEnhancedStyles() {
@@ -202,6 +236,29 @@ class ScheduleUserList {
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(255, 255, 255, 0.2);
             }
+            
+            /* Login prompt styles */
+            .login-prompt {
+                background: linear-gradient(135deg, rgba(254, 252, 232, 0.95), rgba(254, 249, 195, 0.9));
+                border: 1px solid rgba(253, 230, 138, 0.5);
+                backdrop-filter: blur(12px);
+            }
+            
+            /* Disabled booking state */
+            .disabled-booking {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+            
+            .login-required-btn {
+                background: linear-gradient(135deg, #6b7280, #9ca3af) !important;
+                cursor: not-allowed;
+            }
+            
+            .login-required-btn:hover {
+                transform: none !important;
+                box-shadow: none !important;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -295,7 +352,7 @@ class ScheduleUserList {
             if (schedule.deleteStatus) return false;
 
             const scheduleDate = new Date(schedule.date);
-            const scheduleDateTime = new Date(${schedule.date}T${schedule.time});
+            const scheduleDateTime = new Date(`${schedule.date}T${schedule.time}`);
 
             if (scheduleDate.getTime() > today.getTime()) {
                 return true;
@@ -340,7 +397,7 @@ class ScheduleUserList {
 
             this.filteredSchedules.forEach((schedule, index) => {
                 const card = this.createScheduleCard(schedule);
-                card.style.animationDelay = ${index * 0.1}s;
+                card.style.animationDelay = `${index * 0.1}s`;
                 this.scheduleContainer.appendChild(card);
             });
         }
@@ -348,7 +405,7 @@ class ScheduleUserList {
 
     createScheduleCard(schedule) {
         const card = document.createElement('div');
-        card.className = 'schedule-card animate-fade-in-up bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl p-6 border border-white/30';
+        card.className = `schedule-card animate-fade-in-up bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl p-6 border border-white/30 ${!this.isUserLoggedIn ? 'disabled-booking' : ''}`;
 
         const formattedDate = new Date(schedule.date).toLocaleDateString('en-US', {
             weekday: 'long',
@@ -357,7 +414,7 @@ class ScheduleUserList {
             day: 'numeric'
         });
 
-        const formattedTime = new Date(2000-01-01T${schedule.time}).toLocaleTimeString('en-US', {
+        const formattedTime = new Date(`2000-01-01T${schedule.time}`).toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true
@@ -380,6 +437,25 @@ class ScheduleUserList {
         };
 
         const trainTypeColor = typeColors[schedule.trainType] || 'from-gray-500 to-gray-700';
+
+        // Create booking button based on login status
+        const bookingButton = this.isUserLoggedIn ?
+            `<button 
+                onclick="window.location.href='/create-booking?scheduleId=${schedule.id}'"
+                class="w-full inline-flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 px-6 py-3 shadow-lg hover:shadow-xl transform hover:scale-105 group"
+            >
+                <i class="fas fa-ticket-alt mr-3 group-hover:rotate-12 transition-transform"></i>
+                <span class="font-bold">Book Your Journey</span>
+                <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+            </button>` :
+            `<button 
+                onclick="window.location.href='/login'"
+                class="w-full inline-flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 login-required-btn text-white h-12 px-6 py-3 shadow-lg group"
+            >
+                <i class="fas fa-sign-in-alt mr-3"></i>
+                <span class="font-bold">Login to Book</span>
+                <i class="fas fa-lock ml-2"></i>
+            </button>`;
 
         card.innerHTML = `
             <div class="flex justify-between items-start mb-6">
@@ -468,15 +544,8 @@ class ScheduleUserList {
                     ` : ''}
                 </div>
                 
-                <!-- Book Button -->
-                <button 
-                    onclick="window.location.href='/create-booking?scheduleId=${schedule.id}'"
-                    class="w-full inline-flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white h-12 px-6 py-3 shadow-lg hover:shadow-xl transform hover:scale-105 group"
-                >
-                    <i class="fas fa-ticket-alt mr-3 group-hover:rotate-12 transition-transform"></i>
-                    <span class="font-bold">Book Your Journey</span>
-                    <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-                </button>
+                <!-- Book Button - Conditionally rendered based on login status -->
+                ${bookingButton}
             </div>
         `;
 
@@ -581,9 +650,9 @@ function addFloatingElements() {
         const element = document.createElement('div');
         element.className = 'floating-element absolute text-2xl opacity-20 pointer-events-none';
         element.textContent = emoji;
-        element.style.left = ${Math.random() * 90}%;
-        element.style.top = ${Math.random() * 90}%;
-        element.style.animationDelay = ${index * 0.5}s;
+        element.style.left = `${Math.random() * 90}%`;
+        element.style.top = `${Math.random() * 90}%`;
+        element.style.animationDelay = `${index * 0.5}s`;
         bg.appendChild(element);
     });
 }
