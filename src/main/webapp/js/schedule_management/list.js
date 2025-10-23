@@ -3,7 +3,7 @@ class ScheduleList {
         this.schedules = [];
         this.filteredSchedules = [];
         this.deleteScheduleId = null;
-        this.hardDelete = false; // Track delete type
+        this.hardDelete = false;
 
         this.elements = {
             searchInput: document.getElementById('searchInput'),
@@ -27,8 +27,83 @@ class ScheduleList {
     init() {
         this.bindEvents();
         this.loadSchedules();
+        this.initNotifications(); // ADD THIS LINE
     }
 
+    // ADD THIS METHOD
+    initNotifications() {
+        console.log('🔔 Initializing notifications for list page...');
+        this.loadNotifications();
+        setInterval(() => this.loadNotifications(), 10000);
+    }
+
+    // ADD THIS METHOD
+    loadNotifications() {
+        fetch('/api/schedules/notifications')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load notifications');
+                return res.json();
+            })
+            .then(data => {
+                const container = document.getElementById('notifications');
+                if (!container) {
+                    console.error('❌ Notifications container not found');
+                    return;
+                }
+
+                console.log('🔔 Notifications data received:', data);
+
+                if (data && Array.isArray(data) && data.length > 0) {
+                    container.innerHTML = data.slice(0, 5).map(msg => {
+                        let icon = 'fas fa-bell';
+                        let bgColor = 'bg-blue-50';
+                        let textColor = 'text-blue-800';
+
+                        if (msg.includes('NEW Schedule')) {
+                            icon = 'fas fa-plus-circle';
+                            bgColor = 'bg-green-50';
+                            textColor = 'text-green-800';
+                        } else if (msg.includes('UPDATED')) {
+                            icon = 'fas fa-edit';
+                            bgColor = 'bg-blue-50';
+                            textColor = 'text-blue-800';
+                        } else if (msg.includes('CANCELLED')) {
+                            icon = 'fas fa-trash';
+                            bgColor = 'bg-red-50';
+                            textColor = 'text-red-800';
+                        }
+
+                        return `
+                            <div class="p-3 ${bgColor} ${textColor} rounded border mb-2 text-sm flex items-start">
+                                <i class="${icon} mr-2 mt-0.5 flex-shrink-0"></i>
+                                <span class="flex-1 font-medium">${msg}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                            <div>No recent activity</div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('🔔 Failed to load notifications:', error);
+                const container = document.getElementById('notifications');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center text-red-500 py-4">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <div>Failed to load notifications</div>
+                        </div>
+                    `;
+                }
+            });
+    }
+
+    // ... REST OF YOUR EXISTING ScheduleList METHODS ...
     bindEvents() {
         this.elements.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
         this.elements.dateFilter.addEventListener('change', (e) => this.handleDateFilter(e.target.value));
@@ -37,7 +112,6 @@ class ScheduleList {
         this.elements.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
         this.elements.exportPdfBtn.addEventListener('click', () => this.exportToPDF());
 
-        // Add event listener for hard delete checkbox if it exists
         if (this.elements.hardDeleteCheckbox) {
             this.elements.hardDeleteCheckbox.addEventListener('change', (e) => {
                 this.hardDelete = e.target.checked;
@@ -52,7 +126,7 @@ class ScheduleList {
             }
             if (e.target.closest('.edit-btn')) {
                 const scheduleId = e.target.closest('.edit-btn').dataset.scheduleId;
-                window.location.href = /edit-schedule?scheduleId=${scheduleId};
+                window.location.href = `/edit-schedule?scheduleId=${scheduleId}`;
             }
         });
     }
@@ -195,9 +269,8 @@ class ScheduleList {
 
     showDeleteModal(scheduleId) {
         this.deleteScheduleId = scheduleId;
-        this.hardDelete = false; // Reset to soft delete by default
+        this.hardDelete = false;
 
-        // Reset checkbox state if it exists
         if (this.elements.hardDeleteCheckbox) {
             this.elements.hardDeleteCheckbox.checked = false;
         }
@@ -242,8 +315,7 @@ class ScheduleList {
         this.setDeleteLoading(true);
 
         try {
-            // Build URL with hardDelete parameter
-            const url = /api/schedules/${this.deleteScheduleId}${this.hardDelete ? '?hardDelete=true' : ''};
+            const url = `/api/schedules/${this.deleteScheduleId}${this.hardDelete ? '?hardDelete=true' : ''}`;
 
             const response = await fetch(url, {
                 method: 'DELETE'
@@ -253,9 +325,8 @@ class ScheduleList {
                 const message = await response.text();
                 this.showSuccess(message || 'Schedule deleted successfully!');
                 this.hideDeleteModal();
-                this.loadSchedules(); // Reload to reflect changes
+                this.loadSchedules();
             } else if (response.status === 409) {
-                // Handle conflict (e.g., cannot delete due to constraints)
                 const error = await response.text();
                 this.showError(error || 'Cannot delete schedule due to existing constraints');
             } else {
@@ -322,14 +393,14 @@ class ScheduleList {
             })}`, 14, 30);
 
             const tableData = this.filteredSchedules.map(schedule => [
-                ${schedule.fromCity} → ${schedule.toCity},
-            schedule.trainName,
+                `${schedule.fromCity} → ${schedule.toCity}`,
+                schedule.trainName,
                 schedule.trainType,
                 this.formatDate(schedule.date),
                 this.formatTime(schedule.time),
                 this.formatDateTime(schedule.createdAt),
                 schedule.deleteStatus ? 'Deleted' : 'Active'
-        ]);
+            ]);
 
             doc.autoTable({
                 head: [['Route', 'Train Name', 'Type', 'Date', 'Time', 'Created', 'Status']],
@@ -355,7 +426,7 @@ class ScheduleList {
                 }
             });
 
-            doc.save(schedule-list-${new Date().toISOString().split('T')[0]}.pdf);
+            doc.save(`schedule-list-${new Date().toISOString().split('T')[0]}.pdf`);
             this.showSuccess('PDF exported successfully!');
 
         } catch (error) {
