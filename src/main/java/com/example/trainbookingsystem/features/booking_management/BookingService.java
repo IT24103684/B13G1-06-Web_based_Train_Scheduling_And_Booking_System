@@ -260,6 +260,7 @@ public class BookingService {
         }
     }
 
+    // Backward compatibility - default to soft delete
     @Transactional
     public boolean deleteBooking(Long id) {
         return deleteBooking(id, false);
