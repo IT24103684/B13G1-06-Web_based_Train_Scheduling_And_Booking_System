@@ -1,444 +1,234 @@
-class UserBookingList {
-    constructor() {
-        this.passengerId = null;
-        this.bookings = [];
-        this.container = document.getElementById('bookingsContainer');
-        this.loadingState = document.getElementById('loadingState');
-        this.noBookingsState = document.getElementById('noBookingsState');
-        this.editModal = document.getElementById('editModal');
-        this.editForm = document.getElementById('editForm');
-        this.editBookingId = null;
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings - RailSwift</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+        theme: {
+        extend: {
+        colors: {
+        border: "hsl(214.3 31.8% 91.4%)",
+        input: "hsl(214.3 31.8% 91.4%)",
+        ring: "hsl(222.2 84% 4.9%)",
+        background: "hsl(0 0% 100%)",
+        foreground: "hsl(222.2 84% 4.9%)",
+        primary: {
+        DEFAULT: "hsl(222.2 47.4% 11.2%)",
+        foreground: "hsl(210 40% 98%)",
+    },
+        secondary: {
+        DEFAULT: "hsl(210 40% 96%)",
+        foreground: "hsl(222.2 84% 4.9%)",
+    },
+        destructive: {
+        DEFAULT: "hsl(0 84.2% 60.2%)",
+        foreground: "hsl(210 40% 98%)",
+    },
+        muted: {
+        DEFAULT: "hsl(210 40% 96%)",
+        foreground: "hsl(215.4 16.3% 46.9%)",
+    },
+        accent: {
+        DEFAULT: "hsl(210 40% 96%)",
+        foreground: "hsl(222.2 84% 4.9%)",
+    },
+    },
+    }
+    }
+    }
+    </script>
+    <style>
+        .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+        .train-pattern {
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+        .loading-skeleton {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+        @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+        .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+        .class-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+        .class-economy { background-color: #dcfce7; color: #166534; }
+        .class-business { background-color: #dbeafe; color: #1e40af; }
+        .class-first_class { background-color: #fef3c7; color: #92400e; }
+        .class-luxury { background-color: #fae8ff; color: #86198f; }
 
-        this.init();
+        /* Soft deleted booking styling */
+        .deleted-booking {
+        background: linear-gradient(45deg, transparent 95%, #fecaca 95%);
+        position: relative;
     }
 
-    init() {
-        this.checkAuthentication();
-        this.loadBookings();
-        this.bindModalEvents();
+        .deleted-booking::before {
+        content: "DELETED";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #ef4444;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        transform: rotate(5deg);
     }
 
-    checkAuthentication() {
-        const session = sessionStorage.getItem('passengerSession');
-        if (!session) {
-            window.location.href = '/login';
-            return;
-        }
-
-        try {
-            const sessionData = JSON.parse(session);
-            this.passengerId = sessionData.id;
-        } catch (error) {
-            window.location.href = '/login';
-        }
+        /* Delete options modal enhancements */
+        .soft-delete-option {
+        border-left: 4px solid #3b82f6 !important;
+        transition: all 0.2s ease;
     }
 
-    showLoading(show) {
-        if (show) {
-            this.loadingState.classList.remove('hidden');
-            this.container.classList.add('hidden');
-            this.noBookingsState.classList.add('hidden');
-        } else {
-            this.loadingState.classList.add('hidden');
-        }
+        .soft-delete-option:hover {
+        background-color: #eff6ff !important;
+        border-color: #1d4ed8 !important;
+        transform: translateX(4px);
     }
 
-    showError(message) {
-        const existingAlert = document.querySelector('.error-alert');
-        if (existingAlert) {
-            existingAlert.remove();
-        }
+        .hard-delete-option {
+        border-left: 4px solid #ef4444 !important;
+        transition: all 0.2s ease;
+    }
 
-        const alert = document.createElement('div');
-        alert.className = 'error-alert fixed top-4 right-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50';
-        alert.innerHTML = `
-            <i class="fas fa-exclamation-triangle text-red-600"></i>
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()" class="ml-2 text-red-600 hover:text-red-800">
-                <i class="fas fa-times"></i>
+        .hard-delete-option:hover {
+        background-color: #fef2f2 !important;
+        border-color: #dc2626 !important;
+        transform: translateX(4px);
+    }
+
+        /* Disabled state for deleted bookings */
+        .opacity-60 {
+        opacity: 0.6;
+    }
+
+        .cursor-not-allowed {
+        cursor: not-allowed;
+    }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient train-pattern">
+<jsp:include page="../common/navbar.jsp"/>
+
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Loading State -->
+    <div id="loadingState" class="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-8">
+        <div class="animate-pulse space-y-6">
+            <div class="h-8 bg-gray-300 rounded w-1/3"></div>
+            <div class="space-y-4">
+                <div class="h-4 bg-gray-300 rounded w-full"></div>
+                <div class="h-4 bg-gray-300 rounded w-3/4"></div>
+                <div class="h-4 bg-gray-300 rounded w-1/2"></div>
+            </div>
+            <div class="h-20 bg-gray-300 rounded"></div>
+        </div>
+    </div>
+
+    <!-- No Bookings State -->
+    <div id="noBookingsState" class="hidden bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-12 text-center">
+        <div class="mx-auto h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
+            <i class="fas fa-ticket-alt text-muted-foreground text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-foreground mb-2">No Bookings Found</h2>
+        <p class="text-muted-foreground mb-6">You haven't made any bookings yet.</p>
+        <a href="/schedules" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 transition">
+            <i class="fas fa-train mr-2"></i>
+            Book a Train
+        </a>
+    </div>
+
+    <!-- Bookings Container -->
+    <div id="bookingsContainer" class="hidden space-y-6">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-foreground">My Bookings</h1>
+                <p class="text-muted-foreground mt-2">
+                    Manage your train bookings. Soft-deleted bookings are kept in trash for recovery.
+                </p>
+            </div>
+            <button onclick="window.location.reload()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
+                <i class="fas fa-sync-alt mr-2"></i>
+                Refresh
             </button>
-        `;
+        </div>
+        <!-- Booking cards will be injected here by JS -->
+    </div>
+</div>
 
-        document.body.appendChild(alert);
+<!-- Edit Modal -->
+<div id="editModal" class="modal-backdrop hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 mx-4 sm:mx-0" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-foreground">Edit Booking Notes</h2>
+            <button type="button" onclick="userBookingList.closeEditModal()" class="text-gray-400 hover:text-gray-600 transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
 
-        setTimeout(() => {
-            if (alert.parentElement) {
-                alert.remove();
-            }
-        }, 5000);
-    }
-
-    showSuccess(message) {
-        const existingAlert = document.querySelector('.success-alert');
-        if (existingAlert) {
-            existingAlert.remove();
-        }
-
-        const alert = document.createElement('div');
-        alert.className = 'success-alert fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg flex items-center space-x-2 z-50 animate-pulse';
-        alert.innerHTML = `
-            <i class="fas fa-check-circle text-green-600"></i>
-            <span>${message}</span>
-        `;
-
-        document.body.appendChild(alert);
-
-        setTimeout(() => {
-            alert.remove();
-        }, 5000);
-    }
-
-    async loadBookings() {
-        this.showLoading(true);
-
-        try {
-            const response = await fetch(`/api/bookings/passenger/${this.passengerId}`);
-            if (response.ok) {
-                this.bookings = await response.json();
-                this.renderBookings();
-            } else {
-                this.showError('Failed to load your bookings.');
-                this.container.classList.add('hidden');
-                this.noBookingsState.classList.remove('hidden');
-            }
-        } catch (error) {
-            this.showError('Network error. Please try again.');
-            this.container.classList.add('hidden');
-            this.noBookingsState.classList.remove('hidden');
-        } finally {
-            this.showLoading(false);
-        }
-    }
-
-    renderBookings() {
-        this.container.innerHTML = '';
-
-        if (this.bookings.length === 0) {
-            this.container.classList.add('hidden');
-            this.noBookingsState.classList.remove('hidden');
-            return;
-        }
-
-        this.noBookingsState.classList.add('hidden');
-        this.container.classList.remove('hidden');
-
-        this.bookings.forEach(booking => {
-            const card = this.createBookingCard(booking);
-            this.container.appendChild(card);
-        });
-    }
-
-    getClassBadge(classType) {
-        const classStyles = {
-            'ECONOMY': 'class-economy',
-            'BUSINESS': 'class-business',
-            'FIRST_CLASS': 'class-first_class',
-            'LUXURY': 'class-luxury'
-        };
-
-        const className = classType || 'ECONOMY';
-        const styleClass = classStyles[className] || 'class-economy';
-        const displayName = className.toLowerCase().replace('_', ' ');
-
-        return `<span class="class-badge ${styleClass}">${displayName}</span>`;
-    }
-
-    createBookingCard(booking) {
-        const card = document.createElement('div');
-        card.className = 'bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 mb-6 border border-gray-200';
-        card.dataset.bookingId = booking.id;
-
-        const schedule = booking.schedule || {};
-        const passenger = booking.passenger || {};
-
-        // Format date and time
-        const formattedDate = schedule.date ? new Date(schedule.date).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        }) : 'N/A';
-
-        const formattedTime = schedule.time ? new Date(`2000-01-01T${schedule.time}`).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        }) : 'N/A';
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h3 class="text-lg font-bold text-foreground">Booking #${booking.id}</h3>
-                    <p class="text-sm text-muted-foreground">Created on ${booking.createdAt ? new Date(booking.createdAt).toLocaleString() : 'N/A'}</p>
-                </div>
-                <div class="text-right">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            booking.deleteStatus ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-        }">
-                        ${booking.deleteStatus ? 'Deleted' : 'Active'}
-                    </span>
-                    <div class="mt-1">
-                        ${this.getClassBadge(booking.classType)}
-                    </div>
-                </div>
+        <form id="editForm" class="space-y-6">
+            <div class="space-y-2">
+                <label for="editAdditionalNotes" class="text-sm font-medium text-foreground">Additional Notes (Optional)</label>
+                <textarea
+                    id="editAdditionalNotes"
+                    name="additionalNotes"
+                    rows="4"
+                    class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none transition-all duration-200"
+                    placeholder="Any special requests or notes for your journey..."
+                ></textarea>
+                <p class="text-xs text-muted-foreground">Max 500 characters. Leave blank to remove existing notes.</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Passenger</h4>
-                    <p class="text-sm">${passenger.firstName || ''} ${passenger.lastName || ''}</p>
-                    <p class="text-xs text-muted-foreground">${passenger.email || ''}</p>
-                </div>
-                <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Train Journey</h4>
-                    <p class="text-sm font-medium">${schedule.trainName || 'N/A'} (${schedule.trainType || 'N/A'})</p>
-                    <p class="text-sm">
-                        <span class="font-medium">${schedule.fromCity || 'N/A'}</span> → <span class="font-medium">${schedule.toCity || 'N/A'}</span>
-                    </p>
-                    <p class="text-sm text-muted-foreground">${formattedDate} at ${formattedTime}</p>
-                </div>
-                <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Booking Details</h4>
-                    <p class="text-sm">
-                        ${booking.seatCount || 1} seat${booking.seatCount !== 1 ? 's' : ''} • 
-                        ${this.getClassBadge(booking.classType)}
-                    </p>
-                    <p class="text-sm italic">${booking.additionalNotes || 'None provided'}</p>
-                </div>
-                <div class="space-y-2">
-                    <h4 class="font-medium text-foreground">Status</h4>
-                    <p class="text-sm">Last updated: ${booking.updatedAt ? new Date(booking.updatedAt).toLocaleString() : 'Never'}</p>
-                </div>
-            </div>
-
-            <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
-                <button 
-                    type="button" 
-                    data-id="${booking.id}" 
-                    class="edit-booking-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
-                    ${booking.deleteStatus ? 'disabled' : ''}
+            <div class="flex justify-end space-x-4 pt-4">
+                <button
+                    type="button"
+                    onclick="userBookingList.closeEditModal()"
+                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-6 py-2"
                 >
-                    <i class="fas fa-edit mr-2"></i>
-                    Edit Notes
+                    <i class="fas fa-times mr-2"></i>
+                    Cancel
                 </button>
-                <button 
-                    type="button" 
-                    data-id="${booking.id}" 
-                    class="delete-booking-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
-                    ${booking.deleteStatus ? 'disabled' : ''}
+                <button
+                    type="submit"
+                    id="saveEditBtn"
+                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 py-2 min-w-[140px]"
                 >
-                    <i class="fas fa-trash-alt mr-2"></i>
-                    Delete
+                    <span>Save Changes</span>
+                    <i class="fas fa-spinner fa-spin ml-2 hidden"></i>
                 </button>
             </div>
-        `;
+        </form>
+    </div>
+</div>
 
-        // Bind events
-        const editBtn = card.querySelector('.edit-booking-btn');
-        const deleteBtn = card.querySelector('.delete-booking-btn');
-
-        if (editBtn) {
-            editBtn.addEventListener('click', () => this.openEditModal(booking));
-        }
-
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => this.handleDeleteBooking(booking.id));
-        }
-
-        return card;
-    }
-
-    openEditModal(booking) {
-        this.editBookingId = booking.id;
-        const notesTextarea = document.getElementById('editAdditionalNotes');
-        notesTextarea.value = booking.additionalNotes || '';
-        this.editModal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
-    }
-
-    closeEditModal() {
-        this.editBookingId = null;
-        this.editForm.reset();
-        this.editModal.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-    }
-
-    bindModalEvents() {
-        // Close modal on backdrop click
-        this.editModal.addEventListener('click', (e) => {
-            if (e.target === this.editModal) {
-                this.closeEditModal();
-            }
-        });
-
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.editModal.classList.contains('hidden')) {
-                this.closeEditModal();
-            }
-        });
-
-        // Handle form submit
-        this.editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
-    }
-
-    async handleEditSubmit(e) {
-        e.preventDefault();
-
-        if (!this.editBookingId) {
-            this.showError('No booking selected for editing.');
-            return;
-        }
-
-        const formData = new FormData(this.editForm);
-        const updateData = {
-            additionalNotes: formData.get('additionalNotes').trim() || null
-        };
-
-        const saveBtn = document.getElementById('saveEditBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-
-        try {
-            const response = await fetch(`/api/bookings/${this.editBookingId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updateData)
-            });
-
-            if (response.ok) {
-                this.showSuccess('Booking updated successfully!');
-                this.closeEditModal();
-                // Refresh the list
-                setTimeout(() => {
-                    this.loadBookings();
-                }, 1000);
-            } else {
-                const error = await response.text();
-                this.showError(error || 'Failed to update booking.');
-            }
-        } catch (error) {
-            this.showError('Network error. Please try again.');
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-        }
-    }
-
-    async handleDeleteBooking(bookingId) {
-        const booking = this.bookings.find(b => b.id == bookingId);
-        if (!booking) return;
-
-        let confirmMessage = 'Are you sure you want to delete this booking? This action cannot be undone.';
-
-        // Add information about seat restoration
-        confirmMessage += '\n\n💺 Seats will be immediately released for other customers.';
-
-        // Use enhanced confirmation for better UX
-        if (this.showCustomDeleteConfirmation) {
-            this.showCustomDeleteConfirmation(bookingId, confirmMessage);
-            return;
-        }
-
-        if (!confirm(confirmMessage)) return;
-
-        await this.proceedWithBookingDeletion(bookingId);
-    }
-
-    // Enhanced delete confirmation with custom modal
-    showCustomDeleteConfirmation(bookingId, message) {
-        const modalHtml = `
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 mx-4">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold text-foreground">Delete Booking</h3>
-                            <p class="text-sm text-muted-foreground mt-1 whitespace-pre-line">${message}</p>
-                        </div>
-                    </div>
-                    <div class="flex justify-end space-x-3 mt-6">
-                        <button 
-                            onclick="this.closest('.fixed').remove()" 
-                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onclick="userBookingList.proceedWithBookingDeletion(${bookingId})" 
-                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                            Delete Booking
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-
-    // Extract deletion logic to separate method
-    async proceedWithBookingDeletion(bookingId) {
-        // Remove any custom modals
-        document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.remove());
-
-        const card = document.querySelector(`[data-booking-id="${bookingId}"]`);
-        if (!card) return;
-
-        const deleteBtn = card.querySelector('.delete-booking-btn');
-        const originalText = deleteBtn.innerHTML;
-        deleteBtn.disabled = true;
-        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Deleting...';
-
-        try {
-            const response = await fetch(`/api/bookings/${bookingId}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                this.showSuccess('Booking deleted successfully! Seats have been released.');
-                card.remove();
-
-                // Check if no bookings left
-                if (document.querySelectorAll('[data-booking-id]').length === 0) {
-                    this.container.classList.add('hidden');
-                    this.noBookingsState.classList.remove('hidden');
-                }
-            } else {
-                const error = await response.text();
-                this.showError(error || 'Failed to delete booking.');
-            }
-        } catch (error) {
-            this.showError('Network error. Please try again.');
-        } finally {
-            deleteBtn.disabled = false;
-            deleteBtn.innerHTML = originalText;
-        }
-    }
-
-    // Utility method to check if booking has active reservation
-    async checkBookingHasReservation(bookingId) {
-        try {
-            const response = await fetch(`/api/reservations/booking/${bookingId}`);
-            if (response.ok) {
-                const reservation = await response.json();
-                return !!reservation;
-            }
-            return false;
-        } catch (error) {
-            console.error('Error checking reservation:', error);
-            return false;
-        }
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.userBookingList = new UserBookingList();
-});
+<script src="/js/booking_management/userList.js"></script>
+</body>
+</html>
