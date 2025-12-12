@@ -37,4 +37,15 @@ public interface BookingRepo extends JpaRepository<BookingModel, Long> {
 
     @Query("SELECT b FROM BookingModel b WHERE b.deleteStatus = false AND b.createdAt < :cutoffTime AND NOT EXISTS (SELECT r FROM ReservationModel r WHERE r.booking = b AND r.deleteStatus = false)")
     List<BookingModel> findExpiredBookingsWithoutReservations(@Param("cutoffTime") LocalDateTime cutoffTime);
+
+    List<BookingModel> findByCreatedAtBeforeAndDeleteStatus(LocalDateTime createdAt, Boolean deleteStatus);
+
+    @Query("SELECT b FROM BookingModel b WHERE b.createdAt < :cutoffTime AND NOT EXISTS (SELECT r FROM ReservationModel r WHERE r.booking = b)")
+    List<BookingModel> findBookingsWithoutReservations(@Param("cutoffTime") LocalDateTime cutoffTime);
+
+    @Query("SELECT b FROM BookingModel b WHERE b.schedule.id = :scheduleId")
+    List<BookingModel> findByScheduleId(@Param("scheduleId") Long scheduleId);
+
+    @Query("SELECT COUNT(b) FROM BookingModel b WHERE b.schedule.id = :scheduleId AND b.deleteStatus = false")
+    int countActiveBookingsByScheduleId(@Param("scheduleId") Long scheduleId);
 }

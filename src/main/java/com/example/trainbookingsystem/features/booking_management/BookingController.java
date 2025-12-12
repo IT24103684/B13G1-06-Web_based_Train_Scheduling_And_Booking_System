@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -85,14 +86,25 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteBooking(@PathVariable Long id) {
+    public ResponseEntity<?> deleteBooking(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "false") boolean permanent) {
+
         try {
-            boolean deleted = bookingService.deleteBooking(id);
+            boolean deleted = bookingService.deleteBooking(id, permanent);
             if (deleted) {
-                return ResponseEntity.ok("Booking deleted successfully");
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking not found");
+                String message = permanent ?
+                        "Booking permanently deleted" :
+                        "Booking moved to trash";
+                return ResponseEntity.ok().body(
+                        Map.of("message", message, "permanent", permanent)
+                );
             }
+            return ResponseEntity.notFound().build();
+        } catch (BookingService.BookingException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting booking");
         }

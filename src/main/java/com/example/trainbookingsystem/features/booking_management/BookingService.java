@@ -88,16 +88,15 @@ public class BookingService {
             throw new BookingException("Seat count must be greater than 0");
         }
 
-        if (seatCount > 6) {
-            throw new BookingException("Maximum 6 seats allowed per booking");
+        if (seatCount > 100) {
+            throw new BookingException("Cannot book more than 100 seats in a single booking");
         }
 
-        // Validate class type
+
         if (classType == null || classType.trim().isEmpty()) {
             throw new BookingException("Class type is required");
         }
 
-        // Validate seat availability
         int availableSeats = getAvailableSeatsByClass(schedule, classType);
         if (seatCount > availableSeats) {
             throw new SeatUnavailableException("Not enough seats available in " + classType + " class. Available: " + availableSeats);
@@ -178,12 +177,26 @@ public class BookingService {
     }
 
     @Transactional
-    public boolean deleteBooking(Long id) {
+    public boolean deleteBooking(Long id, boolean hardDelete) {
         Optional<BookingModel> booking = bookingRepo.findByIdAndDeleteStatus(id, false);
         if (booking.isPresent()) {
             BookingModel bookingModel = booking.get();
 
-            // 1. FIND AND DELETE PAYMENT (if exists)
+            if (hardDelete) {
+                // HARD DELETE - Remove completely from database
+                return hardDeleteBooking(bookingModel);
+            } else {
+                // SOFT DELETE - Keep data with delete status
+                return softDeleteBooking(bookingModel);
+            }
+        }
+        return false;
+    }
+
+    @Transactional
+    protected boolean softDeleteBooking(BookingModel bookingModel) {
+        try {
+            // 1. FIND AND SOFT DELETE PAYMENT (if exists)
             Optional<PaymentModel> payment = paymentRepo.findByBookingIdAndDeleteStatus(bookingModel.getId(), false);
             if (payment.isPresent()) {
                 PaymentModel paymentModel = payment.get();
@@ -191,7 +204,7 @@ public class BookingService {
                 paymentRepo.save(paymentModel);
             }
 
-            // 2. FIND AND DELETE RESERVATION (if exists)
+            // 2. FIND AND SOFT DELETE RESERVATION (if exists)
             Optional<ReservationModel> reservation = reservationRepo.findByBookingIdAndDeleteStatus(bookingModel.getId(), false);
             if (reservation.isPresent()) {
                 ReservationModel reservationModel = reservation.get();
@@ -199,7 +212,7 @@ public class BookingService {
                 // RESTORE SEATS from reservation
                 restoreSeatsFromReservation(reservationModel);
 
-                // Delete reservation
+                // Soft delete reservation
                 reservationModel.setDeleteStatus(true);
                 reservationRepo.save(reservationModel);
             } else {
@@ -207,12 +220,49 @@ public class BookingService {
                 restoreSeatsToSchedule(bookingModel);
             }
 
-            // 4. FINALLY DELETE THE BOOKING
+            // 4. SOFT DELETE THE BOOKING
             bookingModel.setDeleteStatus(true);
             bookingRepo.save(bookingModel);
+
             return true;
+        } catch (Exception e) {
+            throw new BookingException("Failed to soft delete booking: " + e.getMessage());
         }
-        return false;
+    }
+
+    @Transactional
+    protected boolean hardDeleteBooking(BookingModel bookingModel) {
+        try {
+            // 1. HARD DELETE PAYMENT (if exists)
+            Optional<PaymentModel> payment = paymentRepo.findByBookingId(bookingModel.getId());
+            payment.ifPresent(paymentRepo::delete);
+
+            // 2. HARD DELETE RESERVATION (if exists)
+            Optional<ReservationModel> reservation = reservationRepo.findByBookingId(bookingModel.getId());
+            if (reservation.isPresent()) {
+                ReservationModel reservationModel = reservation.get();
+
+                // RESTORE SEATS from reservation before deleting
+                restoreSeatsFromReservation(reservationModel);
+
+                reservationRepo.delete(reservationModel);
+            } else {
+                // 3. NO RESERVATION - Restore seats from booking directly
+                restoreSeatsToSchedule(bookingModel);
+            }
+
+            // 4. HARD DELETE THE BOOKING
+            bookingRepo.delete(bookingModel);
+
+            return true;
+        } catch (Exception e) {
+            throw new BookingException("Failed to hard delete booking: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public boolean deleteBooking(Long id) {
+        return deleteBooking(id, false);
     }
 
     private void restoreSeatsFromReservation(ReservationModel reservation) {
@@ -229,19 +279,20 @@ public class BookingService {
         switch (classType.toUpperCase()) {
             case "ECONOMY":
                 int newEconomy = schedule.getAvailableEconomySeats() + seatCount;
-                schedule.setAvailableEconomySeats(Math.min(newEconomy, 50));
+                // Remove the hardcoded maximum or make it configurable
+                schedule.setAvailableEconomySeats(newEconomy); // Removed Math.min(newEconomy, 50)
                 break;
             case "BUSINESS":
                 int newBusiness = schedule.getAvailableBusinessSeats() + seatCount;
-                schedule.setAvailableBusinessSeats(Math.min(newBusiness, 30));
+                schedule.setAvailableBusinessSeats(newBusiness); // Removed Math.min(newBusiness, 30)
                 break;
             case "FIRST_CLASS":
                 int newFirstClass = schedule.getAvailableFirstClassSeats() + seatCount;
-                schedule.setAvailableFirstClassSeats(Math.min(newFirstClass, 20));
+                schedule.setAvailableFirstClassSeats(newFirstClass); // Removed Math.min(newFirstClass, 20)
                 break;
             case "LUXURY":
                 int newLuxury = schedule.getAvailableLuxurySeats() + seatCount;
-                schedule.setAvailableLuxurySeats(Math.min(newLuxury, 10));
+                schedule.setAvailableLuxurySeats(newLuxury); // Removed Math.min(newLuxury, 10)
                 break;
         }
         scheduleRepo.save(schedule);
