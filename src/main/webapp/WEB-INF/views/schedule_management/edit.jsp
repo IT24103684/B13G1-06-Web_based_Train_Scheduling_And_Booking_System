@@ -182,31 +182,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-between pt-6 border-t">
-                <div class="text-sm text-muted-foreground">
-                    <p>Created: <span id="createdAt" class="font-medium"></span></p>
-                    <p>Last Updated: <span id="updatedAt" class="font-medium"></span></p>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button
-                            type="button"
-                            onclick="history.back()"
-                            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                            type="submit"
-                            id="submitBtn"
-                            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 min-w-[130px]"
-                    >
-                        <span class="button-text">Update Schedule</span>
-                        <i class="fas fa-spinner fa-spin ml-2 hidden loading-spinner"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- In your edit.jsp file, add this section after the existing form fields -->
+            <!-- Class Availability Section -->
             <div class="border-t pt-6">
                 <h3 class="text-lg font-medium text-foreground mb-4">Class Availability</h3>
                 <p class="text-sm text-muted-foreground mb-4">Update the number of available seats for each class</p>
@@ -290,6 +266,45 @@
                 </div>
             </div>
 
+            <!-- Notifications Section -->
+            <div class="border-t pt-6">
+                <h3 class="text-lg font-medium text-foreground mb-4">
+                    <i class="fas fa-bell mr-2"></i>Recent Notifications
+                </h3>
+                <div id="notifications" class="border border-gray-200 rounded-md p-4 max-h-64 overflow-y-auto bg-gray-50">
+                    <div class="text-center text-gray-500" id="loadingNotifications">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Loading notifications...
+                    </div>
+                    <div id="notificationList" class="hidden space-y-2"></div>
+                    <div id="emptyNotifications" class="hidden text-center text-gray-500">
+                        <i class="fas fa-bell-slash mr-2"></i>No notifications yet
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-6 border-t">
+                <div class="text-sm text-muted-foreground">
+                    <p>Created: <span id="createdAt" class="font-medium"></span></p>
+                    <p>Last Updated: <span id="updatedAt" class="font-medium"></span></p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button
+                            type="button"
+                            onclick="history.back()"
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                            type="submit"
+                            id="submitBtn"
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 min-w-[130px]"
+                    >
+                        <span class="button-text">Update Schedule</span>
+                        <i class="fas fa-spinner fa-spin ml-2 hidden loading-spinner"></i>
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
 </div>

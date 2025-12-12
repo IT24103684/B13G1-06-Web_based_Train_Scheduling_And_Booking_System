@@ -179,33 +179,68 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
 <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="p-6">
-            <div class="flex items-center space-x-4">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-destructive text-2xl"></i>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Delete Passenger</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600" onclick="passengerList.hideDeleteModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <p class="text-gray-600 mb-4">Choose how you want to delete this passenger:</p>
+
+            <!-- Delete Type Selection -->
+            <div class="space-y-3 mb-4">
+                <div id="softDeleteOption" class="border-2 rounded-lg p-4 cursor-pointer transition-colors border-blue-500 bg-blue-50">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-archive text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-blue-900">Soft Delete</h4>
+                            <p class="text-sm text-blue-700 mt-1">Deactivate account but keep data</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-foreground">Confirm Delete</h3>
-                    <p class="text-sm text-muted-foreground mt-2">
-                        Are you sure you want to delete this passenger? This action cannot be undone.
-                    </p>
+
+                <div id="hardDeleteOption" class="border-2 rounded-lg p-4 cursor-pointer transition-colors border-gray-300 bg-white">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-trash text-red-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-red-900">Hard Delete</h4>
+                            <p class="text-sm text-red-700 mt-1">Permanently delete all data</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="flex items-center justify-end space-x-3 mt-6">
-                <button
-                        id="cancelDeleteBtn"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                >
+
+            <!-- Description -->
+            <div id="deleteTypeDescription" class="text-sm text-gray-600 mb-6 p-3 bg-gray-50 rounded-lg">
+                The passenger account will be deactivated but their data will be kept in the system. This can be reversed if needed.
+            </div>
+
+            <!-- Warning for hard delete -->
+            <div id="hardDeleteWarning" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div class="flex items-center space-x-2 text-red-800">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span class="text-sm font-medium">Warning: This action cannot be undone!</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button id="cancelDeleteBtn" type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Cancel
                 </button>
-                <button
-                        id="confirmDeleteBtn"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2 min-w-[80px]"
-                >
+                <button id="confirmDeleteBtn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <span class="button-text">Delete</span>
-                    <i class="fas fa-spinner fa-spin ml-2 hidden loading-spinner"></i>
+                    <span class="loading-spinner hidden ml-2">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
                 </button>
             </div>
         </div>

@@ -13,11 +13,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to create auth links
     function renderAuthLinks() {
         if (userId) {
-            // User is logged in → Show Profile, My Bookings, etc.
+            // User is logged in → Show Profile, My Payments, My Reservations, etc.
             const links = [
                 { text: 'Profile', href: '/profile' },
-                { text: 'My Bookings', href: '/my-bookings' },
+                { text: 'My Payments', href: '/my-payments' },
                 { text: 'My Reservations', href: '/my-reservations' },
+                { text: 'My Bookings', href: '/my-bookings' }, // Added: My Bookings link
                 { text: 'Feedbacks', href: '/feedbacks' },
                 { text: 'Logout', href: '#', action: handleLogout }
             ];

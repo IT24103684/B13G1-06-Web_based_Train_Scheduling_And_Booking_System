@@ -4,11 +4,14 @@ import com.example.trainbookingsystem.features.passenger_management.PassengerMod
 import com.example.trainbookingsystem.features.passenger_management.PassengerRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class FeedbackService {
 
     @Autowired
@@ -37,7 +40,13 @@ public class FeedbackService {
     public FeedbackDTOS.FeedbackResponseDTO createFeedback(FeedbackDTOS.CreateFeedbackDTO createDTO) {
         Optional<PassengerModel> passenger = passengerRepo.findByIdAndDeleteStatus(createDTO.getCreatedBy(), false);
         if (!passenger.isPresent()) {
-            throw new RuntimeException("Passenger not found");
+            throw new FeedbackException("Passenger not found");
+        }
+
+
+        if (createDTO.getNumOfStars() != null &&
+                (createDTO.getNumOfStars() < 1 || createDTO.getNumOfStars() > 5)) {
+            throw new FeedbackException("Rating must be between 1 and 5 stars");
         }
 
         FeedbackModel feedback = new FeedbackModel(
@@ -61,17 +70,74 @@ public class FeedbackService {
                         feedback.setMessage(updateDTO.getMessage());
                     }
                     if (updateDTO.getNumOfStars() != null) {
+                        // Validate rating range
+                        if (updateDTO.getNumOfStars() < 1 || updateDTO.getNumOfStars() > 5) {
+                            throw new FeedbackException("Rating must be between 1 and 5 stars");
+                        }
                         feedback.setNumOfStars(updateDTO.getNumOfStars());
                     }
                     return convertToResponseDTO(feedbackRepo.save(feedback));
                 });
     }
 
-    public boolean deleteFeedback(Long id) {
+    @Transactional
+    public boolean deleteFeedback(Long id, boolean hardDelete) {
         Optional<FeedbackModel> feedback = feedbackRepo.findByIdAndDeleteStatus(id, false);
         if (feedback.isPresent()) {
             FeedbackModel feedbackModel = feedback.get();
+
+            if (hardDelete) {
+
+                return hardDeleteFeedback(feedbackModel);
+            } else {
+
+                return softDeleteFeedback(feedbackModel);
+            }
+        }
+        return false;
+    }
+
+    @Transactional
+    protected boolean softDeleteFeedback(FeedbackModel feedbackModel) {
+        try {
+
             feedbackModel.setDeleteStatus(true);
+            feedbackRepo.save(feedbackModel);
+            return true;
+        } catch (Exception e) {
+            throw new FeedbackException("Failed to soft delete feedback: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    protected boolean hardDeleteFeedback(FeedbackModel feedbackModel) {
+        try {
+
+            feedbackRepo.delete(feedbackModel);
+            return true;
+        } catch (Exception e) {
+            throw new FeedbackException("Failed to hard delete feedback: " + e.getMessage());
+        }
+    }
+
+
+    public boolean deleteFeedback(Long id) {
+        return deleteFeedback(id, false);
+    }
+
+
+    public List<FeedbackDTOS.FeedbackResponseDTO> getDeletedFeedbacks() {
+        return feedbackRepo.findByDeleteStatusOrderByCreatedAtDesc(true).stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    public boolean restoreFeedback(Long id) {
+        Optional<FeedbackModel> feedback = feedbackRepo.findByIdAndDeleteStatus(id, true);
+        if (feedback.isPresent()) {
+            FeedbackModel feedbackModel = feedback.get();
+            feedbackModel.setDeleteStatus(false);
             feedbackRepo.save(feedbackModel);
             return true;
         }
@@ -96,5 +162,18 @@ public class FeedbackService {
         responseDTO.setCreatedBy(passengerInfo);
 
         return responseDTO;
+    }
+
+
+    public static class FeedbackException extends RuntimeException {
+        public FeedbackException(String message) {
+            super(message);
+        }
+    }
+
+    public static class InvalidRatingException extends FeedbackException {
+        public InvalidRatingException(String message) {
+            super(message);
+        }
     }
 }

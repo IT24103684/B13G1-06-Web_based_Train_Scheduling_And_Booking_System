@@ -3,6 +3,7 @@ class PassengerList {
         this.passengers = [];
         this.filteredPassengers = [];
         this.deletePassengerId = null;
+        this.deleteType = 'soft'; // Default to soft delete
 
         this.elements = {
             searchInput: document.getElementById('searchInput'),
@@ -17,7 +18,11 @@ class PassengerList {
             deleteModal: document.getElementById('deleteModal'),
             cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
-            exportPdfBtn: document.getElementById('exportPdfBtn')
+            exportPdfBtn: document.getElementById('exportPdfBtn'),
+            // New elements for delete options
+            softDeleteOption: document.getElementById('softDeleteOption'),
+            hardDeleteOption: document.getElementById('hardDeleteOption'),
+            deleteTypeDescription: document.getElementById('deleteTypeDescription')
         };
 
         this.init();
@@ -37,6 +42,14 @@ class PassengerList {
         this.elements.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
         this.elements.exportPdfBtn.addEventListener('click', () => this.exportToPDF());
 
+        // Delete type selection events
+        if (this.elements.softDeleteOption) {
+            this.elements.softDeleteOption.addEventListener('click', () => this.selectDeleteType('soft'));
+        }
+        if (this.elements.hardDeleteOption) {
+            this.elements.hardDeleteOption.addEventListener('click', () => this.selectDeleteType('hard'));
+        }
+
         document.addEventListener('click', (e) => {
             if (e.target.closest('.delete-btn')) {
                 const passengerId = e.target.closest('.delete-btn').dataset.passengerId;
@@ -47,6 +60,39 @@ class PassengerList {
                 window.location.href = `/edit-passenger?passengerId=${passengerId}`;
             }
         });
+    }
+
+    selectDeleteType(type) {
+        this.deleteType = type;
+
+        // Update UI to show selected option
+        if (this.elements.softDeleteOption && this.elements.hardDeleteOption) {
+            if (type === 'soft') {
+                this.elements.softDeleteOption.classList.add('border-blue-500', 'bg-blue-50');
+                this.elements.softDeleteOption.classList.remove('border-gray-300', 'bg-white');
+                this.elements.hardDeleteOption.classList.add('border-gray-300', 'bg-white');
+                this.elements.hardDeleteOption.classList.remove('border-red-500', 'bg-red-50');
+            } else {
+                this.elements.hardDeleteOption.classList.add('border-red-500', 'bg-red-50');
+                this.elements.hardDeleteOption.classList.remove('border-gray-300', 'bg-white');
+                this.elements.softDeleteOption.classList.add('border-gray-300', 'bg-white');
+                this.elements.softDeleteOption.classList.remove('border-blue-500', 'bg-blue-50');
+            }
+        }
+
+        // Update description
+        this.updateDeleteDescription();
+    }
+
+    updateDeleteDescription() {
+        if (!this.elements.deleteTypeDescription) return;
+
+        const descriptions = {
+            soft: "The passenger account will be deactivated but their data will be kept in the system. This can be reversed if needed.",
+            hard: "The passenger account and all associated data (bookings, reservations, feedback) will be permanently deleted. This action cannot be undone."
+        };
+
+        this.elements.deleteTypeDescription.textContent = descriptions[this.deleteType] || '';
     }
 
     showState(stateName) {
@@ -178,7 +224,6 @@ class PassengerList {
                 </td>
                 <td class="p-4 align-middle text-right">
                     <div class="flex items-center justify-end space-x-2">
-                     
                         <button 
                             class="delete-btn inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8"
                             data-passenger-id="${passenger.id}"
@@ -204,6 +249,8 @@ class PassengerList {
 
     showDeleteModal(passengerId) {
         this.deletePassengerId = passengerId;
+        this.deleteType = 'soft'; // Reset to default
+        this.selectDeleteType('soft'); // Update UI
         this.elements.deleteModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
@@ -235,12 +282,16 @@ class PassengerList {
         this.setDeleteLoading(true);
 
         try {
-            const response = await fetch(`/api/passengers/${this.deletePassengerId}`, {
+            // Convert delete type to backend parameter
+            const keepData = this.deleteType === 'soft';
+
+            const response = await fetch(`/api/passengers/${this.deletePassengerId}?keepData=${keepData}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                this.showSuccess('Passenger deleted successfully!');
+                const message = await response.text();
+                this.showSuccess(message || 'Passenger deleted successfully!');
                 this.hideDeleteModal();
                 this.loadPassengers();
             } else {

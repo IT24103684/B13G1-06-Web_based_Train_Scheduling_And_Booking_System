@@ -88,16 +88,15 @@ public class BookingService {
             throw new BookingException("Seat count must be greater than 0");
         }
 
-        if (seatCount > 6) {
-            throw new BookingException("Maximum 6 seats allowed per booking");
+        if (seatCount > 100) {
+            throw new BookingException("Cannot book more than 100 seats in a single booking");
         }
 
-        // Validate class type
+
         if (classType == null || classType.trim().isEmpty()) {
             throw new BookingException("Class type is required");
         }
 
-        // Validate seat availability
         int availableSeats = getAvailableSeatsByClass(schedule, classType);
         if (seatCount > availableSeats) {
             throw new SeatUnavailableException("Not enough seats available in " + classType + " class. Available: " + availableSeats);
@@ -281,19 +280,20 @@ public class BookingService {
         switch (classType.toUpperCase()) {
             case "ECONOMY":
                 int newEconomy = schedule.getAvailableEconomySeats() + seatCount;
-                schedule.setAvailableEconomySeats(Math.min(newEconomy, 50));
+                // Remove the hardcoded maximum or make it configurable
+                schedule.setAvailableEconomySeats(newEconomy); // Removed Math.min(newEconomy, 50)
                 break;
             case "BUSINESS":
                 int newBusiness = schedule.getAvailableBusinessSeats() + seatCount;
-                schedule.setAvailableBusinessSeats(Math.min(newBusiness, 30));
+                schedule.setAvailableBusinessSeats(newBusiness); // Removed Math.min(newBusiness, 30)
                 break;
             case "FIRST_CLASS":
                 int newFirstClass = schedule.getAvailableFirstClassSeats() + seatCount;
-                schedule.setAvailableFirstClassSeats(Math.min(newFirstClass, 20));
+                schedule.setAvailableFirstClassSeats(newFirstClass); // Removed Math.min(newFirstClass, 20)
                 break;
             case "LUXURY":
                 int newLuxury = schedule.getAvailableLuxurySeats() + seatCount;
-                schedule.setAvailableLuxurySeats(Math.min(newLuxury, 10));
+                schedule.setAvailableLuxurySeats(newLuxury); // Removed Math.min(newLuxury, 10)
                 break;
         }
         scheduleRepo.save(schedule);
